@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { getListAction, addToListAction, removeFromListAction } from "@/app/actions";
 import type { Item, InventoryNote } from "@/lib/types";
 import { timeAgo } from "@/lib/timeAgo";
 
@@ -16,6 +17,27 @@ export function ItemGrid({
 }) {
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   const [selectedStore, setSelectedStore] = useState<string>("");
+  const [onListIds, setOnListIds] = useState<Set<string>>(
+    () => new Set(itemIdsOnList)
+  );
+
+  // Refetch list when this page is shown so we always see fresh on-list status
+  // after navigating away and back (avoids stale client-side router cache).
+  useEffect(() => {
+    getListAction().then((list) => {
+      setOnListIds(new Set(list.map((e) => e.itemId)));
+    });
+  }, []);
+
+  async function toggleOnList(itemId: string, currentlyOnList: boolean) {
+    if (currentlyOnList) {
+      const { ok } = await removeFromListAction(itemId);
+      if (ok) setOnListIds((prev) => { const s = new Set(prev); s.delete(itemId); return s; });
+    } else {
+      const { entry } = await addToListAction(itemId);
+      if (entry) setOnListIds((prev) => new Set(prev).add(itemId));
+    }
+  }
 
   const categories = useMemo(
     () =>
@@ -157,13 +179,34 @@ export function ItemGrid({
                 </span>
                 <span
                   className={
-                    itemIdsOnList.includes(item.id)
+                    onListIds.has(item.id)
                       ? "text-xs tracking-wide uppercase text-[var(--success)]"
                       : "text-xs tracking-wide uppercase text-[var(--muted)]"
                   }
                 >
-                  {itemIdsOnList.includes(item.id) ? "On List" : "Not on List"}
+                  {onListIds.has(item.id) ? "On List" : "Not on List"}
                 </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleOnList(item.id, onListIds.has(item.id));
+                  }}
+                  className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                  aria-label={onListIds.has(item.id) ? `Remove ${item.name} from list` : `Add ${item.name} to list`}
+                  title={onListIds.has(item.id) ? "Remove from list" : "Add to list"}
+                >
+                  {onListIds.has(item.id) ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  )}
+                </button>
               </div>
               {(item.category || item.defaultStore) && (
                 <p className="text-sm text-[var(--muted)] mt-0.5">
