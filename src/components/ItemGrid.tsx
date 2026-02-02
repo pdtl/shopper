@@ -7,9 +7,11 @@ import { timeAgo } from "@/lib/timeAgo";
 export function ItemGrid({
   items,
   inventoryByItem,
+  itemIdsOnList,
 }: {
   items: Item[];
   inventoryByItem: Record<string, InventoryNote>;
+  itemIdsOnList: string[];
 }) {
   if (items.length === 0) {
     return (
@@ -35,9 +37,20 @@ export function ItemGrid({
               href={`/items/${item.id}`}
               className="block tap-target bg-[var(--card)] rounded-xl border border-[var(--border)] p-4 no-underline hover:border-[var(--accent)] transition-colors"
             >
-              <span className="font-medium text-[var(--foreground)]">
-                {item.name}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-medium text-[var(--foreground)]">
+                  {item.name}
+                </span>
+                <span
+                  className={
+                    itemIdsOnList.includes(item.id)
+                      ? "text-xs tracking-wide uppercase text-[var(--success)]"
+                      : "text-xs tracking-wide uppercase text-[var(--muted)]"
+                  }
+                >
+                  {itemIdsOnList.includes(item.id) ? "On List" : "Not on List"}
+                </span>
+              </div>
               {(item.category || item.defaultStore) && (
                 <p className="text-sm text-[var(--muted)] mt-0.5">
                   {[item.category, item.defaultStore].filter(Boolean).join(" · ")}
