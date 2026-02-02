@@ -5,7 +5,7 @@ A mobile-optimized web app for managing a household shopping list. Add items, se
 ## Features
 
 - **Home** – Friendly landing; auth is auto-approved when run locally.
-- **Shopping list** – View list and check off items as you pick them up.
+- **Shopping list** – View list and check off items as you pick them up; filter by category (pills) or store (dropdown).
 - **Items** – Browse all items and see the latest inventory notes.
 - **Manage item** – Edit category, default store, and add inventory notes; add/remove from list.
 
