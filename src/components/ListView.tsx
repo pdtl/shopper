@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { setPickedUpAction } from "@/app/actions";
+import { getListAction, setPickedUpAction } from "@/app/actions";
 import type { Item, ListEntry } from "@/lib/types";
 
 type ListItem = Item & ListEntry;
 
 export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [list, setList] = useState(initialList);
+
+  // Refetch list when this page is shown so we always see fresh picked/shopped state
+  // after navigating away and back (avoids stale client-side router cache).
+  useEffect(() => {
+    getListAction().then((fresh) => setList(fresh));
+  }, []);
 
   async function togglePicked(itemId: string, current: boolean) {
     const res = await setPickedUpAction(itemId, !current);

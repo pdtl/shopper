@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   getAllItems,
   getItemById,
@@ -69,6 +70,7 @@ export async function removeFromListAction(itemId: string) {
 
 export async function setPickedUpAction(itemId: string, pickedUp: boolean) {
   const entry = await setPickedUp(itemId, pickedUp);
+  if (entry) revalidatePath("/list");
   return { entry };
 }
 
