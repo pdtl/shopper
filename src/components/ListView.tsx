@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { getListAction, setPickedUpAction } from "@/app/actions";
+import { getListAction, setPickedUpAction, removeFromListAction } from "@/app/actions";
 import type { Item, ListEntry } from "@/lib/types";
 
 type ListItem = Item & ListEntry;
@@ -11,6 +11,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [list, setList] = useState(initialList);
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   const [selectedStore, setSelectedStore] = useState<string>("");
+  const [removeConfirmItem, setRemoveConfirmItem] = useState<ListItem | null>(null);
 
   // Refetch list when this page is shown so we always see fresh picked/shopped state
   // after navigating away and back (avoids stale client-side router cache).
@@ -66,6 +67,16 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
           e.itemId === itemId ? { ...e, pickedUp: res.entry!.pickedUp } : e
         )
       );
+    }
+  }
+
+  async function confirmRemoveFromList() {
+    if (!removeConfirmItem) return;
+    const itemId = removeConfirmItem.itemId;
+    setRemoveConfirmItem(null);
+    const { ok } = await removeFromListAction(itemId);
+    if (ok) {
+      setList((prev) => prev.filter((e) => e.itemId !== itemId));
     }
   }
 
@@ -169,11 +180,24 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                   >
                     {entry.name}
                   </Link>
-                  {(entry.category || entry.defaultStore) && (
-                    <p className="text-sm text-[var(--muted)] truncate">
-                      {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
-                    </p>
-                  )}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {(entry.category || entry.defaultStore) && (
+                      <span className="text-sm text-[var(--muted)] truncate">
+                        {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setRemoveConfirmItem(entry)}
+                      className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                      aria-label={`Remove ${entry.name} from list`}
+                      title="Remove from list"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}
@@ -208,17 +232,69 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                   >
                     {entry.name}
                   </Link>
-                  {(entry.category || entry.defaultStore) && (
-                    <p className="text-sm text-[var(--muted)] truncate">
-                      {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
-                    </p>
-                  )}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {(entry.category || entry.defaultStore) && (
+                      <span className="text-sm text-[var(--muted)] truncate">
+                        {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setRemoveConfirmItem(entry)}
+                      className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                      aria-label={`Remove ${entry.name} from list`}
+                      title="Remove from list"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
         </section>
       )}
+        </div>
+      )}
+
+      {removeConfirmItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setRemoveConfirmItem(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="remove-confirm-title"
+          aria-describedby="remove-confirm-desc"
+        >
+          <div
+            className="bg-[var(--card)] rounded-2xl border border-[var(--border)] shadow-xl max-w-sm w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="remove-confirm-title" className="text-lg font-semibold text-[var(--foreground)]">
+              Remove from list?
+            </h2>
+            <p id="remove-confirm-desc" className="mt-2 text-[var(--muted)]">
+              <strong className="text-[var(--foreground)]">{removeConfirmItem.name}</strong> will be removed from your shopping list. You can add it back from the Items page.
+            </p>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setRemoveConfirmItem(null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--muted)] bg-[var(--border)]/30 hover:bg-[var(--border)]/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmRemoveFromList}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--accent)] hover:opacity-90 transition-opacity"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>
