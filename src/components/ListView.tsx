@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { getListAction, setPickedUpAction } from "@/app/actions";
 import type { Item, ListEntry } from "@/lib/types";
@@ -9,12 +9,54 @@ type ListItem = Item & ListEntry;
 
 export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [list, setList] = useState(initialList);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  const [selectedStore, setSelectedStore] = useState<string>("");
 
   // Refetch list when this page is shown so we always see fresh picked/shopped state
   // after navigating away and back (avoids stale client-side router cache).
   useEffect(() => {
     getListAction().then((fresh) => setList(fresh));
   }, []);
+
+  const categories = useMemo(
+    () =>
+      Array.from(
+        new Set(list.map((e) => e.category).filter((c): c is string => c != null))
+      ).sort(),
+    [list]
+  );
+
+  const stores = useMemo(
+    () =>
+      Array.from(
+        new Set(list.map((e) => e.defaultStore).filter((s): s is string => s != null))
+      ).sort(),
+    [list]
+  );
+
+  const filteredList = useMemo(() => {
+    let result = list;
+    if (selectedStore) {
+      result = result.filter((e) => e.defaultStore === selectedStore);
+    }
+    if (selectedCategories.size > 0) {
+      result = result.filter((e) => e.category != null && selectedCategories.has(e.category));
+    }
+    return result;
+  }, [list, selectedStore, selectedCategories]);
+
+  function toggleCategory(category: string | null) {
+    if (category == null) {
+      setSelectedCategories(new Set());
+      return;
+    }
+    setSelectedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }
 
   async function togglePicked(itemId: string, current: boolean) {
     const res = await setPickedUpAction(itemId, !current);
@@ -27,25 +69,82 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
     }
   }
 
-  const pending = list.filter((e) => !e.pickedUp);
-  const picked = list.filter((e) => e.pickedUp);
+  const pending = filteredList.filter((e) => !e.pickedUp);
+  const picked = filteredList.filter((e) => e.pickedUp);
 
-  if (list.length === 0) {
-    return (
-      <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-8 text-center text-[var(--muted)]">
-        <p>Your list is empty.</p>
-        <Link
-          href="/items"
-          className="mt-3 inline-block text-[var(--accent)] font-medium underline"
-        >
-          Add items from your item list
-        </Link>
-      </div>
-    );
-  }
+  const showAll = selectedCategories.size === 0;
+  const hasCategories = categories.length > 0;
+  const hasStores = stores.length > 0;
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <h1 className="text-2xl font-bold text-[var(--foreground)]">
+          Shopping list
+        </h1>
+        {hasStores && (
+          <select
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.target.value)}
+            className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            aria-label="Filter by store"
+          >
+            <option value="">All</option>
+            {stores.map((store) => (
+              <option key={store} value={store}>
+                {store}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+      <p className="text-[var(--muted)] mb-6">
+        Check off items as you pick them up.
+      </p>
+      {list.length === 0 ? (
+        <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-8 text-center text-[var(--muted)]">
+          <p>Your list is empty.</p>
+          <Link
+            href="/items"
+            className="mt-3 inline-block text-[var(--accent)] font-medium underline"
+          >
+            Add items from your item list
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-6">
+      {hasCategories && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => toggleCategory(null)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              showAll
+                ? "bg-[var(--accent)] text-white"
+                : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
+            }`}
+          >
+            All
+          </button>
+          {categories.map((cat) => {
+            const active = selectedCategories.has(cat);
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => toggleCategory(cat)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-[var(--accent)] text-white"
+                    : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
+                }`}
+              >
+                {cat}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {pending.length > 0 && (
         <section>
           <h2 className="text-sm font-medium text-[var(--muted)] mb-2">
@@ -120,6 +219,8 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
           </ul>
         </section>
       )}
-    </div>
+        </div>
+      )}
+    </>
   );
 }
