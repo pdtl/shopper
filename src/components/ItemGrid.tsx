@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Item, InventoryNote } from "@/lib/types";
+import { timeAgo } from "@/lib/timeAgo";
 
 export function ItemGrid({
   items,
@@ -45,6 +46,10 @@ export function ItemGrid({
               {note && (
                 <p className="text-sm text-[var(--accent)] mt-1">
                   Inventory: {note.note}
+                  <span className="text-[var(--muted)] font-normal">
+                    {" "}
+                    · {timeAgo(note.createdAt)}
+                  </span>
                 </p>
               )}
             </Link>
