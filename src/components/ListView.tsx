@@ -170,9 +170,11 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                 <button
                   type="button"
                   onClick={() => togglePicked(entry.itemId, false)}
-                  className="tap-target w-6 h-6 rounded-full border-2 border-[var(--accent)] bg-transparent flex-shrink-0 hover:bg-[var(--accent)]/20 transition-colors"
+                  className="tap-target flex flex-shrink-0 items-center justify-center rounded-full p-2 sm:p-0 hover:bg-[var(--accent)]/20 transition-colors"
                   aria-label={`Mark ${entry.name} as picked up`}
-                />
+                >
+                  <span className="block w-7 h-7 sm:w-6 sm:h-6 rounded-full border-2 border-[var(--accent)] bg-transparent" aria-hidden />
+                </button>
                 <div className="flex-1 min-w-0">
                   <Link
                     href={`/items/${entry.id}`}
@@ -218,12 +220,14 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                 <button
                   type="button"
                   onClick={() => togglePicked(entry.itemId, true)}
-                  className="tap-target w-6 h-6 rounded-full bg-[var(--success)] flex items-center justify-center flex-shrink-0 hover:opacity-80"
+                  className="tap-target flex flex-shrink-0 items-center justify-center rounded-full p-2 sm:p-0 hover:opacity-80 transition-opacity"
                   aria-label={`Uncheck ${entry.name}`}
                 >
-                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+                  <span className="flex w-7 h-7 sm:w-6 sm:h-6 items-center justify-center rounded-full bg-[var(--success)]" aria-hidden>
+                    <svg className="w-5 h-5 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </span>
                 </button>
                 <div className="flex-1 min-w-0">
                   <Link
