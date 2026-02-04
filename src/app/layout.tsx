@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
 
@@ -25,10 +26,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('shopper-theme');var ok=['default','bright','mint','sky','lavender','sunny','snow'];if(ok.indexOf(t)!==-1)document.documentElement.setAttribute('data-theme',t);})();`,
+          }}
+        />
         <Nav />
         <main className="flex-1 pb-20">{children}</main>
       </body>

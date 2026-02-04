@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* Default – warm, calm (techy) */
+:root,
+[data-theme="default"] {
   --background: #faf8f5;
   --foreground: #2d2a26;
   --card: #ffffff;
@@ -15,7 +17,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]),
+  [data-theme="default"] {
     --background: #1c1a18;
     --foreground: #ebe8e4;
     --card: #262422;
@@ -25,6 +28,168 @@
     --border: #3d3935;
     --success: #7aab7a;
     --success-bg: #243324;
+  }
+}
+
+/* Bright – family-friendly, cheerful */
+[data-theme="bright"] {
+  --background: #fff9f0;
+  --foreground: #2b2b2b;
+  --card: #ffffff;
+  --accent: #ff8c5a;
+  --accent-hover: #ff7a42;
+  --muted: #6b6b6b;
+  --border: #ffe4cc;
+  --success: #2e9d6b;
+  --success-bg: #e6f7ef;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="bright"] {
+    --background: #2a2520;
+    --foreground: #f5f0ea;
+    --card: #36302a;
+    --accent: #ff9f73;
+    --accent-hover: #ffb08a;
+    --muted: #b0a89e;
+    --border: #4a423a;
+    --success: #4bb88a;
+    --success-bg: #1e3329;
+  }
+}
+
+/* Mint – soft greens, calm and friendly */
+[data-theme="mint"] {
+  --background: #f0faf6;
+  --foreground: #1a2e28;
+  --card: #ffffff;
+  --accent: #3db88a;
+  --accent-hover: #2da878;
+  --muted: #5a7a72;
+  --border: #cce8de;
+  --success: #2e9d6b;
+  --success-bg: #e6f7ef;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="mint"] {
+    --background: #1a2522;
+    --foreground: #e8f4f0;
+    --card: #24302b;
+    --accent: #4dcc9e;
+    --accent-hover: #5dd5a8;
+    --muted: #8fb8ac;
+    --border: #2d4039;
+    --success: #4bb88a;
+    --success-bg: #1e3329;
+  }
+}
+
+/* Sky – light blue, airy */
+[data-theme="sky"] {
+  --background: #f0f7ff;
+  --foreground: #1a2744;
+  --card: #ffffff;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --muted: #5b6b82;
+  --border: #d4e4f7;
+  --success: #2e9d6b;
+  --success-bg: #e6f7ef;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="sky"] {
+    --background: #1a2235;
+    --foreground: #e8f0fc;
+    --card: #242f45;
+    --accent: #60a5fa;
+    --accent-hover: #7ab3fb;
+    --muted: #8fa3c4;
+    --border: #2d3d5c;
+    --success: #4bb88a;
+    --success-bg: #1e3329;
+  }
+}
+
+/* Lavender – light purple, soft */
+[data-theme="lavender"] {
+  --background: #f8f4ff;
+  --foreground: #2d2640;
+  --card: #ffffff;
+  --accent: #8b5cf6;
+  --accent-hover: #7c3aed;
+  --muted: #6b5b80;
+  --border: #e8dff5;
+  --success: #2e9d6b;
+  --success-bg: #e6f7ef;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="lavender"] {
+    --background: #221e30;
+    --foreground: #ede8f8;
+    --card: #2e2940;
+    --accent: #a78bfa;
+    --accent-hover: #b89bfb;
+    --muted: #a89bc4;
+    --border: #3d3555;
+    --success: #4bb88a;
+    --success-bg: #1e3329;
+  }
+}
+
+/* Sunny – light yellow, cheerful */
+[data-theme="sunny"] {
+  --background: #fffef5;
+  --foreground: #2d2a1a;
+  --card: #ffffff;
+  --accent: #eab308;
+  --accent-hover: #ca9a04;
+  --muted: #6b6644;
+  --border: #f5ecc8;
+  --success: #2e9d6b;
+  --success-bg: #e6f7ef;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="sunny"] {
+    --background: #2a281c;
+    --foreground: #f5f2e0;
+    --card: #363428;
+    --accent: #facc15;
+    --accent-hover: #fcd84d;
+    --muted: #b0aa88;
+    --border: #4a4535;
+    --success: #4bb88a;
+    --success-bg: #1e3329;
+  }
+}
+
+/* Snow – near-white, minimal */
+[data-theme="snow"] {
+  --background: #fafbfc;
+  --foreground: #1f2937;
+  --card: #ffffff;
+  --accent: #64748b;
+  --accent-hover: #475569;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --success: #2e9d6b;
+  --success-bg: #e6f7ef;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="snow"] {
+    --background: #1e293b;
+    --foreground: #f1f5f9;
+    --card: #334155;
+    --accent: #94a3b8;
+    --accent-hover: #b0bdd0;
+    --muted: #94a3b8;
+    --border: #475569;
+    --success: #4bb88a;
+    --success-bg: #1e3329;
   }
 }
 

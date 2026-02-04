@@ -8,6 +8,7 @@ A mobile-optimized web app for managing a household shopping list. Add items, se
 - **Shopping list** – View list and check off items as you pick them up; filter by category (pills) or store (dropdown).
 - **Items** – Browse all items and see the latest inventory notes.
 - **Manage item** – Edit category, default store, and add inventory notes; add/remove from list.
+- **Themes** – In the nav, choose **Warm** (default), **Bright** (family-friendly), or **Mint** (soft greens). Choice is saved and follows system light/dark.
 
 ## Running locally
 
