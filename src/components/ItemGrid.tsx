@@ -15,7 +15,7 @@ export function ItemGrid({
   inventoryByItem: Record<string, InventoryNote>;
   itemIdsOnList: string[];
 }) {
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string>("");
   const [onListIds, setOnListIds] = useState<Set<string>>(
     () => new Set(itemIdsOnList)
@@ -60,25 +60,14 @@ export function ItemGrid({
     if (selectedStore) {
       result = result.filter((e) => e.defaultStore === selectedStore);
     }
-    if (selectedCategories.size > 0) {
-      result = result.filter(
-        (e) => e.category != null && selectedCategories.has(e.category)
-      );
+    if (selectedCategory) {
+      result = result.filter((e) => e.category === selectedCategory);
     }
     return result;
-  }, [items, selectedStore, selectedCategories]);
+  }, [items, selectedStore, selectedCategory]);
 
-  function toggleCategory(category: string | null) {
-    if (category == null) {
-      setSelectedCategories(new Set());
-      return;
-    }
-    setSelectedCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(category)) next.delete(category);
-      else next.add(category);
-      return next;
-    });
+  function selectCategory(category: string | null) {
+    setSelectedCategory((prev) => (prev === category ? null : category));
   }
 
   if (items.length === 0) {
@@ -97,7 +86,7 @@ export function ItemGrid({
 
   const hasCategories = categories.length > 0;
   const hasStores = stores.length > 0;
-  const showAll = selectedCategories.size === 0;
+  const showAll = selectedCategory === null;
 
   return (
     <div className="space-y-4">
@@ -128,7 +117,7 @@ export function ItemGrid({
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => toggleCategory(null)}
+                onClick={() => selectCategory(null)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   showAll
                     ? "bg-[var(--accent)] text-white"
@@ -138,12 +127,12 @@ export function ItemGrid({
                 All
               </button>
               {categories.map((cat) => {
-                const active = selectedCategories.has(cat);
+                const active = selectedCategory === cat;
                 return (
                   <button
                     key={cat}
                     type="button"
-                    onClick={() => toggleCategory(cat)}
+                    onClick={() => selectCategory(cat)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       active
                         ? "bg-[var(--accent)] text-white"

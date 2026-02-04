@@ -9,7 +9,7 @@ type ListItem = Item & ListEntry;
 
 export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [list, setList] = useState(initialList);
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string>("");
   const [removeConfirmItem, setRemoveConfirmItem] = useState<ListItem | null>(null);
 
@@ -40,23 +40,14 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
     if (selectedStore) {
       result = result.filter((e) => e.defaultStore === selectedStore);
     }
-    if (selectedCategories.size > 0) {
-      result = result.filter((e) => e.category != null && selectedCategories.has(e.category));
+    if (selectedCategory) {
+      result = result.filter((e) => e.category === selectedCategory);
     }
     return result;
-  }, [list, selectedStore, selectedCategories]);
+  }, [list, selectedStore, selectedCategory]);
 
-  function toggleCategory(category: string | null) {
-    if (category == null) {
-      setSelectedCategories(new Set());
-      return;
-    }
-    setSelectedCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(category)) next.delete(category);
-      else next.add(category);
-      return next;
-    });
+  function selectCategory(category: string | null) {
+    setSelectedCategory((prev) => (prev === category ? null : category));
   }
 
   async function togglePicked(itemId: string, current: boolean) {
@@ -83,7 +74,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const pending = filteredList.filter((e) => !e.pickedUp);
   const picked = filteredList.filter((e) => e.pickedUp);
 
-  const showAll = selectedCategories.size === 0;
+  const showAll = selectedCategory === null;
   const hasCategories = categories.length > 0;
   const hasStores = stores.length > 0;
 
@@ -128,7 +119,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => toggleCategory(null)}
+            onClick={() => selectCategory(null)}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               showAll
                 ? "bg-[var(--accent)] text-white"
@@ -138,12 +129,12 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
             All
           </button>
           {categories.map((cat) => {
-            const active = selectedCategories.has(cat);
+            const active = selectedCategory === cat;
             return (
               <button
                 key={cat}
                 type="button"
-                onClick={() => toggleCategory(cat)}
+                onClick={() => selectCategory(cat)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   active
                     ? "bg-[var(--accent)] text-white"
