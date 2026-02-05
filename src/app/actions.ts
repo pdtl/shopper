@@ -10,6 +10,7 @@ import {
   getListWithPickedUp,
   addToList,
   removeFromList,
+  clearList,
   setPickedUp,
   getInventoryNotes,
   getLatestInventoryByItem,
@@ -65,6 +66,11 @@ export async function addToListAction(itemId: string) {
 
 export async function removeFromListAction(itemId: string) {
   const ok = await removeFromList(itemId);
+  return { ok };
+}
+
+export async function clearListAction() {
+  const ok = await clearList();
   return { ok };
 }
 

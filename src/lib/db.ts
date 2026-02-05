@@ -128,6 +128,14 @@ export async function removeFromList(itemId: string): Promise<boolean> {
   return true;
 }
 
+export async function clearList(): Promise<boolean> {
+  const db = await readDb();
+  if (db.listEntries.length === 0) return false;
+  db.listEntries = [];
+  await writeDb(db);
+  return true;
+}
+
 export async function getInventoryNotes(): Promise<InventoryNote[]> {
   const db = await readDb();
   return db.inventoryNotes.sort(

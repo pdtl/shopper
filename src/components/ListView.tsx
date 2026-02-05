@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { getListAction, setPickedUpAction, removeFromListAction } from "@/app/actions";
+import { getListAction, setPickedUpAction, removeFromListAction, clearListAction } from "@/app/actions";
 import type { Item, ListEntry } from "@/lib/types";
 
 type ListItem = Item & ListEntry;
@@ -12,6 +12,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string>("");
   const [removeConfirmItem, setRemoveConfirmItem] = useState<ListItem | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Refetch list when this page is shown so we always see fresh picked/shopped state
   // after navigating away and back (avoids stale client-side router cache).
@@ -71,8 +72,18 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
     }
   }
 
+  async function confirmClearList() {
+    setShowClearConfirm(false);
+    const { ok } = await clearListAction();
+    if (ok) setList([]);
+  }
+
   const pending = filteredList.filter((e) => !e.pickedUp);
   const picked = filteredList.filter((e) => e.pickedUp);
+
+  const totalListCount = list.length;
+  const pickedCount = list.filter((e) => e.pickedUp).length;
+  const progressPercent = totalListCount > 0 ? (pickedCount / totalListCount) * 100 : 0;
 
   const showAll = selectedCategory === null;
   const hasCategories = categories.length > 0;
@@ -147,6 +158,28 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
           })}
         </div>
       )}
+          {/* Progress bar: picked vs total on full list */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-sm">
+              <span className="text-[var(--muted)]">Progress</span>
+              <span className="font-medium text-[var(--foreground)]">
+                {pickedCount} of {totalListCount} picked
+              </span>
+            </div>
+            <div
+              className="h-2 w-full rounded-full bg-[var(--border)] overflow-hidden"
+              role="progressbar"
+              aria-valuenow={pickedCount}
+              aria-valuemin={0}
+              aria-valuemax={totalListCount}
+              aria-label={`${pickedCount} of ${totalListCount} items picked`}
+            >
+              <div
+                className="h-full rounded-full bg-[var(--success)] transition-all duration-300 ease-out"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
       {pending.length > 0 && (
         <section>
           <h2 className="text-sm font-medium text-[var(--muted)] mb-2">
@@ -251,6 +284,15 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
           </ul>
         </section>
       )}
+          <div className="pt-4 border-t border-[var(--border)]">
+            <button
+              type="button"
+              onClick={() => setShowClearConfirm(true)}
+              className="w-full py-3 px-4 rounded-xl text-sm font-medium text-[var(--muted)] bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--border)]/30 hover:text-[var(--foreground)] transition-colors"
+            >
+              Clear list
+            </button>
+          </div>
         </div>
       )}
 
@@ -287,6 +329,45 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--accent)] hover:opacity-90 transition-opacity"
               >
                 Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showClearConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setShowClearConfirm(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="clear-confirm-title"
+          aria-describedby="clear-confirm-desc"
+        >
+          <div
+            className="bg-[var(--card)] rounded-2xl border border-[var(--border)] shadow-xl max-w-sm w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="clear-confirm-title" className="text-lg font-semibold text-[var(--foreground)]">
+              Clear list?
+            </h2>
+            <p id="clear-confirm-desc" className="mt-2 text-[var(--muted)]">
+              All items will be removed from your shopping list. You can add them back from the Items page.
+            </p>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--muted)] bg-[var(--border)]/30 hover:bg-[var(--border)]/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmClearList}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-colors"
+              >
+                Clear list
               </button>
             </div>
           </div>
