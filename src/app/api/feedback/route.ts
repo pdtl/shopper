@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const GITHUB_OWNER = "peteludlow";
+const GITHUB_OWNER = "pdtl";
 const GITHUB_REPO = "shopper";
 
 export async function POST(request: NextRequest) {
