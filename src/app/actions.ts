@@ -31,6 +31,7 @@ export async function createItemAction(formData: FormData) {
   const defaultStore = (formData.get("defaultStore") as string) || null;
   if (!name?.trim()) return { error: "Name is required" };
   const item = await createItem({ name: name.trim(), category, defaultStore });
+  revalidatePath("/items");
   return { item };
 }
 
@@ -47,11 +48,16 @@ export async function updateItemAction(
     defaultStore,
   });
   if (!item) return { error: "Item not found" };
+  revalidatePath("/items");
+  revalidatePath(`/items/${id}`);
+  revalidatePath("/list");
   return { item };
 }
 
 export async function deleteItemAction(id: string) {
   const ok = await deleteItem(id);
+  revalidatePath("/items");
+  revalidatePath("/list");
   return { ok };
 }
 
@@ -61,16 +67,22 @@ export async function getListAction() {
 
 export async function addToListAction(itemId: string) {
   const entry = await addToList(itemId);
+  revalidatePath("/list");
+  revalidatePath("/items");
   return { entry };
 }
 
 export async function removeFromListAction(itemId: string) {
   const ok = await removeFromList(itemId);
+  revalidatePath("/list");
+  revalidatePath("/items");
   return { ok };
 }
 
 export async function clearListAction() {
   const ok = await clearList();
+  revalidatePath("/list");
+  revalidatePath("/items");
   return { ok };
 }
 
@@ -88,6 +100,7 @@ export async function addInventoryNoteAction(itemId: string, note: string) {
   if (!note?.trim()) return { error: "Note is required" };
   const inv = await addInventoryNote(itemId, note.trim());
   if (!inv) return { error: "Item not found" };
+  revalidatePath(`/items/${itemId}`);
   return { note: inv };
 }
 
