@@ -11,6 +11,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [list, setList] = useState(initialList);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string>("");
+  const [searchText, setSearchText] = useState("");
   const [removeConfirmItem, setRemoveConfirmItem] = useState<ListItem | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
@@ -38,6 +39,10 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
 
   const filteredList = useMemo(() => {
     let result = list;
+    if (searchText) {
+      const term = searchText.toLowerCase();
+      result = result.filter((e) => e.name.toLowerCase().includes(term));
+    }
     if (selectedStore) {
       result = result.filter((e) => e.defaultStore === selectedStore);
     }
@@ -45,7 +50,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
       result = result.filter((e) => e.category === selectedCategory);
     }
     return result;
-  }, [list, selectedStore, selectedCategory]);
+  }, [list, searchText, selectedStore, selectedCategory]);
 
   function selectCategory(category: string | null) {
     setSelectedCategory((prev) => (prev === category ? null : category));
@@ -128,6 +133,15 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
       <p className="text-[var(--muted)] mb-6">
         Check off items as you pick them up.
       </p>
+      {list.length > 0 && (
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="Search list..."
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)] mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+        />
+      )}
       {list.length === 0 ? (
         <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-8 text-center text-[var(--muted)]">
           <p>Your list is empty.</p>

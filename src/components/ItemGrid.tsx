@@ -17,6 +17,7 @@ export function ItemGrid({
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string>("");
+  const [searchText, setSearchText] = useState("");
   const [onListIds, setOnListIds] = useState<Set<string>>(
     () => new Set(itemIdsOnList)
   );
@@ -57,6 +58,10 @@ export function ItemGrid({
 
   const filteredItems = useMemo(() => {
     let result = items;
+    if (searchText) {
+      const term = searchText.toLowerCase();
+      result = result.filter((e) => e.name.toLowerCase().includes(term));
+    }
     if (selectedStore) {
       result = result.filter((e) => e.defaultStore === selectedStore);
     }
@@ -64,7 +69,7 @@ export function ItemGrid({
       result = result.filter((e) => e.category === selectedCategory);
     }
     return result;
-  }, [items, selectedStore, selectedCategory]);
+  }, [items, searchText, selectedStore, selectedCategory]);
 
   function selectCategory(category: string | null) {
     setSelectedCategory((prev) => (prev === category ? null : category));
@@ -90,6 +95,13 @@ export function ItemGrid({
 
   return (
     <div className="space-y-4">
+      <input
+        type="text"
+        value={searchText}
+        onChange={(e) => setSearchText(e.target.value)}
+        placeholder="Search items..."
+        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+      />
       {(hasStores || hasCategories) && (
         <div className="space-y-3">
           {hasStores && (
