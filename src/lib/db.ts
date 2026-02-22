@@ -93,6 +93,7 @@ export async function addToList(itemId: string): Promise<ListEntry | null> {
   const existing = db.listEntries.find((e) => e.itemId === itemId);
   if (existing) {
     existing.pickedUp = false;
+    existing.unavailable = false;
     existing.addedAt = new Date().toISOString();
     await writeDb(db);
     return existing;
@@ -115,6 +116,20 @@ export async function setPickedUp(
   const entry = db.listEntries.find((e) => e.itemId === itemId);
   if (!entry) return null;
   entry.pickedUp = pickedUp;
+  if (pickedUp) entry.unavailable = false;
+  await writeDb(db);
+  return entry;
+}
+
+export async function setUnavailable(
+  itemId: string,
+  unavailable: boolean
+): Promise<ListEntry | null> {
+  const db = await readDb();
+  const entry = db.listEntries.find((e) => e.itemId === itemId);
+  if (!entry) return null;
+  entry.unavailable = unavailable;
+  if (unavailable) entry.pickedUp = false;
   await writeDb(db);
   return entry;
 }
@@ -174,7 +189,7 @@ export async function addInventoryNote(
 export async function getItemsOnList(): Promise<(Item & ListEntry)[]> {
   const db = await readDb();
   const items = db.items;
-  const entries = db.listEntries.filter((e) => !e.pickedUp);
+  const entries = db.listEntries.filter((e) => !e.pickedUp && !e.unavailable);
   return entries
     .map((e) => {
       const item = items.find((i) => i.id === e.itemId);

@@ -12,6 +12,7 @@ import {
   removeFromList,
   clearList,
   setPickedUp,
+  setUnavailable,
   getInventoryNotes,
   getLatestInventoryByItem,
   addInventoryNote,
@@ -88,6 +89,12 @@ export async function clearListAction() {
 
 export async function setPickedUpAction(itemId: string, pickedUp: boolean) {
   const entry = await setPickedUp(itemId, pickedUp);
+  if (entry) revalidatePath("/list");
+  return { entry };
+}
+
+export async function setUnavailableAction(itemId: string, unavailable: boolean) {
+  const entry = await setUnavailable(itemId, unavailable);
   if (entry) revalidatePath("/list");
   return { entry };
 }

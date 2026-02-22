@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { getListAction, setPickedUpAction, removeFromListAction, clearListAction } from "@/app/actions";
+import { getListAction, setPickedUpAction, setUnavailableAction, removeFromListAction, clearListAction } from "@/app/actions";
 import type { Item, ListEntry } from "@/lib/types";
 
 type ListItem = Item & ListEntry;
@@ -56,7 +56,18 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
     if (res.entry) {
       setList((prev) =>
         prev.map((e) =>
-          e.itemId === itemId ? { ...e, pickedUp: res.entry!.pickedUp } : e
+          e.itemId === itemId ? { ...e, pickedUp: res.entry!.pickedUp, unavailable: res.entry!.unavailable } : e
+        )
+      );
+    }
+  }
+
+  async function toggleUnavailable(itemId: string, current: boolean) {
+    const res = await setUnavailableAction(itemId, !current);
+    if (res.entry) {
+      setList((prev) =>
+        prev.map((e) =>
+          e.itemId === itemId ? { ...e, unavailable: res.entry!.unavailable, pickedUp: res.entry!.pickedUp } : e
         )
       );
     }
@@ -78,12 +89,15 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
     if (ok) setList([]);
   }
 
-  const pending = filteredList.filter((e) => !e.pickedUp);
+  const pending = filteredList.filter((e) => !e.pickedUp && !e.unavailable);
+  const unavailable = filteredList.filter((e) => e.unavailable);
   const picked = filteredList.filter((e) => e.pickedUp);
 
   const totalListCount = list.length;
   const pickedCount = list.filter((e) => e.pickedUp).length;
-  const progressPercent = totalListCount > 0 ? (pickedCount / totalListCount) * 100 : 0;
+  const unavailableCount = list.filter((e) => e.unavailable).length;
+  const pickedPercent = totalListCount > 0 ? (pickedCount / totalListCount) * 100 : 0;
+  const unavailablePercent = totalListCount > 0 ? (unavailableCount / totalListCount) * 100 : 0;
 
   const showAll = selectedCategory === null;
   const hasCategories = categories.length > 0;
@@ -158,25 +172,29 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
           })}
         </div>
       )}
-          {/* Progress bar: picked vs total on full list */}
+          {/* Progress bar: picked + unavailable vs total on full list */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-sm">
               <span className="text-[var(--muted)]">Progress</span>
               <span className="font-medium text-[var(--foreground)]">
-                {pickedCount} of {totalListCount} picked
+                {pickedCount} picked{unavailableCount > 0 && <>, {unavailableCount} unavailable</>} — {totalListCount} total
               </span>
             </div>
             <div
-              className="h-2 w-full rounded-full bg-[var(--border)] overflow-hidden"
+              className="h-2 w-full rounded-full bg-[var(--border)] overflow-hidden flex"
               role="progressbar"
               aria-valuenow={pickedCount}
               aria-valuemin={0}
               aria-valuemax={totalListCount}
-              aria-label={`${pickedCount} of ${totalListCount} items picked`}
+              aria-label={`${pickedCount} of ${totalListCount} items picked, ${unavailableCount} unavailable`}
             >
               <div
-                className="h-full rounded-full bg-[var(--success)] transition-all duration-300 ease-out"
-                style={{ width: `${progressPercent}%` }}
+                className="h-full bg-[var(--success)] transition-all duration-300 ease-out"
+                style={{ width: `${pickedPercent}%` }}
+              />
+              <div
+                className="h-full bg-[var(--unavailable)] transition-all duration-300 ease-out"
+                style={{ width: `${unavailablePercent}%` }}
               />
             </div>
           </div>
@@ -212,6 +230,83 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                         {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
                       </span>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => toggleUnavailable(entry.itemId, false)}
+                      className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--unavailable)]/20 hover:text-[var(--unavailable)] transition-colors"
+                      aria-label={`Mark ${entry.name} as unavailable`}
+                      title="Mark unavailable"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <circle cx="12" cy="12" r="9" strokeWidth={2} />
+                        <path strokeLinecap="round" strokeWidth={2} d="M9 9l6 6M15 9l-6 6" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveConfirmItem(entry)}
+                      className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                      aria-label={`Remove ${entry.name} from list`}
+                      title="Remove from list"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {unavailable.length > 0 && (
+        <section>
+          <h2 className="text-sm font-medium text-[var(--unavailable)] mb-2">
+            Unavailable
+          </h2>
+          <ul className="space-y-1">
+            {unavailable.map((entry) => (
+              <li
+                key={entry.itemId}
+                className="flex items-center gap-3 bg-[var(--unavailable-bg)] rounded-xl border border-[var(--unavailable)]/30 p-4 opacity-90"
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleUnavailable(entry.itemId, true)}
+                  className="tap-target flex flex-shrink-0 items-center justify-center rounded-full p-2 sm:p-0 hover:opacity-80 transition-opacity"
+                  aria-label={`Mark ${entry.name} as available`}
+                >
+                  <span className="flex w-7 h-7 sm:w-6 sm:h-6 items-center justify-center rounded-full bg-[var(--unavailable)]" aria-hidden>
+                    <svg className="w-5 h-5 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeWidth={2.5} d="M7 7l10 10M17 7l-10 10" />
+                    </svg>
+                  </span>
+                </button>
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={`/items/${entry.id}`}
+                    className="font-medium text-[var(--foreground)] no-underline line-through hover:underline"
+                  >
+                    {entry.name}
+                  </Link>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {(entry.category || entry.defaultStore) && (
+                      <span className="text-sm text-[var(--muted)] truncate">
+                        {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => togglePicked(entry.itemId, false)}
+                      className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--success)]/20 hover:text-[var(--success)] transition-colors"
+                      aria-label={`Mark ${entry.name} as picked up`}
+                      title="Mark as picked up"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setRemoveConfirmItem(entry)}

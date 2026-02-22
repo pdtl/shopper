@@ -9,6 +9,7 @@ export interface Item {
 export interface ListEntry {
   itemId: string;
   pickedUp: boolean;
+  unavailable?: boolean;
   addedAt: string;
 }
 
