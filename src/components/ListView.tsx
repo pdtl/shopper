@@ -299,7 +299,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                 <button
                   type="button"
                   onClick={() => togglePicked(entry.itemId, false)}
-                  className={`tap-target flex flex-shrink-0 items-center justify-center rounded-full hover:bg-[var(--accent)]/20 transition-colors ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
+                  className={`flex flex-shrink-0 items-center justify-center rounded-full hover:bg-[var(--accent)]/20 transition-colors ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
                   aria-label={`Mark ${entry.name} as picked up`}
                 >
                   <span className={`block rounded-full border-2 border-[var(--accent)] bg-transparent ${compact ? "w-5 h-5" : "w-7 h-7 sm:w-6 sm:h-6"}`} aria-hidden />
@@ -322,7 +322,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                     <button
                       type="button"
                       onClick={() => toggleUnavailable(entry.itemId, false)}
-                      className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--unavailable)]/20 hover:text-[var(--unavailable)] transition-colors"
+                      className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--unavailable)]/20 hover:text-[var(--unavailable)] transition-colors"
                       aria-label={`Mark ${entry.name} as unavailable`}
                       title="Mark unavailable"
                     >
@@ -334,7 +334,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                     <button
                       type="button"
                       onClick={() => setRemoveConfirmItem(entry)}
-                      className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                      className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
                       aria-label={`Remove ${entry.name} from list`}
                       title="Remove from list"
                     >
@@ -363,7 +363,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                 <button
                   type="button"
                   onClick={() => toggleUnavailable(entry.itemId, true)}
-                  className={`tap-target flex flex-shrink-0 items-center justify-center rounded-full hover:opacity-80 transition-opacity ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
+                  className={`flex flex-shrink-0 items-center justify-center rounded-full hover:opacity-80 transition-opacity ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
                   aria-label={`Mark ${entry.name} as available`}
                 >
                   <span className={`flex items-center justify-center rounded-full bg-[var(--unavailable)] ${compact ? "w-5 h-5" : "w-7 h-7 sm:w-6 sm:h-6"}`} aria-hidden>
@@ -390,7 +390,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                     <button
                       type="button"
                       onClick={() => togglePicked(entry.itemId, false)}
-                      className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--success)]/20 hover:text-[var(--success)] transition-colors"
+                      className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--success)]/20 hover:text-[var(--success)] transition-colors"
                       aria-label={`Mark ${entry.name} as picked up`}
                       title="Mark as picked up"
                     >
@@ -401,7 +401,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                     <button
                       type="button"
                       onClick={() => setRemoveConfirmItem(entry)}
-                      className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                      className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
                       aria-label={`Remove ${entry.name} from list`}
                       title="Remove from list"
                     >
@@ -430,7 +430,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                 <button
                   type="button"
                   onClick={() => togglePicked(entry.itemId, true)}
-                  className={`tap-target flex flex-shrink-0 items-center justify-center rounded-full hover:opacity-80 transition-opacity ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
+                  className={`flex flex-shrink-0 items-center justify-center rounded-full hover:opacity-80 transition-opacity ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
                   aria-label={`Uncheck ${entry.name}`}
                 >
                   <span className={`flex items-center justify-center rounded-full bg-[var(--success)] ${compact ? "w-5 h-5" : "w-7 h-7 sm:w-6 sm:h-6"}`} aria-hidden>
@@ -457,7 +457,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                     <button
                       type="button"
                       onClick={() => setRemoveConfirmItem(entry)}
-                      className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                      className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
                       aria-label={`Remove ${entry.name} from list`}
                       title="Remove from list"
                     >
