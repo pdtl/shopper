@@ -14,6 +14,18 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [searchText, setSearchText] = useState("");
   const [removeConfirmItem, setRemoveConfirmItem] = useState<ListItem | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [compact, setCompact] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("shopper-list-compact") === "true";
+  });
+
+  function toggleCompact() {
+    setCompact((prev) => {
+      const next = !prev;
+      localStorage.setItem("shopper-list-compact", String(next));
+      return next;
+    });
+  }
 
   // Refetch list when this page is shown so we always see fresh picked/shopped state
   // after navigating away and back (avoids stale client-side router cache).
@@ -114,21 +126,34 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
         <h1 className="text-2xl font-bold text-[var(--foreground)]">
           Shopping list
         </h1>
-        {hasStores && (
-          <select
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-            className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-            aria-label="Filter by store"
+        <div className="flex items-center gap-2">
+          {hasStores && (
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              aria-label="Filter by store"
+            >
+              <option value="">All</option>
+              {stores.map((store) => (
+                <option key={store} value={store}>
+                  {store}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            type="button"
+            onClick={toggleCompact}
+            aria-label={compact ? "Switch to normal view" : "Switch to compact view"}
+            className="flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
           >
-            <option value="">All</option>
-            {stores.map((store) => (
-              <option key={store} value={store}>
-                {store}
-              </option>
-            ))}
-          </select>
-        )}
+            <span>Compact</span>
+            <span className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ${compact ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}>
+              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${compact ? "translate-x-4" : "translate-x-0"}`} />
+            </span>
+          </button>
+        </div>
       </div>
       <p className="text-[var(--muted)] mb-6">
         Check off items as you pick them up.
@@ -221,26 +246,26 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
             {pending.map((entry) => (
               <li
                 key={entry.itemId}
-                className="flex items-center gap-3 bg-[var(--card)] rounded-xl border border-[var(--border)] p-4"
+                className={`flex items-center bg-[var(--card)] rounded-xl border border-[var(--border)] ${compact ? "gap-2 px-2 py-1.5" : "gap-3 p-4"}`}
               >
                 <button
                   type="button"
                   onClick={() => togglePicked(entry.itemId, false)}
-                  className="tap-target flex flex-shrink-0 items-center justify-center rounded-full p-2 sm:p-0 hover:bg-[var(--accent)]/20 transition-colors"
+                  className={`tap-target flex flex-shrink-0 items-center justify-center rounded-full hover:bg-[var(--accent)]/20 transition-colors ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
                   aria-label={`Mark ${entry.name} as picked up`}
                 >
-                  <span className="block w-7 h-7 sm:w-6 sm:h-6 rounded-full border-2 border-[var(--accent)] bg-transparent" aria-hidden />
+                  <span className={`block rounded-full border-2 border-[var(--accent)] bg-transparent ${compact ? "w-5 h-5" : "w-7 h-7 sm:w-6 sm:h-6"}`} aria-hidden />
                 </button>
-                <div className="flex-1 min-w-0">
+                <div className={`flex-1 min-w-0 ${compact ? "flex items-center gap-2" : ""}`}>
                   <Link
                     href={`/items/${entry.id}`}
-                    className="font-medium text-[var(--foreground)] no-underline hover:underline"
+                    className={`font-medium text-[var(--foreground)] no-underline hover:underline ${compact ? "flex-shrink-0" : ""}`}
                   >
                     {entry.name}
                   </Link>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className={`flex items-center gap-1 ${compact ? "ml-auto flex-shrink-0" : "gap-2 mt-0.5"}`}>
                     {(entry.category || entry.defaultStore) && (
-                      <span className="text-sm text-[var(--muted)] truncate">
+                      <span className={`text-[var(--muted)] truncate ${compact ? "text-xs" : "text-sm"}`}>
                         {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
                       </span>
                     )}
@@ -283,30 +308,30 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
             {unavailable.map((entry) => (
               <li
                 key={entry.itemId}
-                className="flex items-center gap-3 bg-[var(--unavailable-bg)] rounded-xl border border-[var(--unavailable)]/30 p-4 opacity-90"
+                className={`flex items-center bg-[var(--unavailable-bg)] rounded-xl border border-[var(--unavailable)]/30 opacity-90 ${compact ? "gap-2 px-2 py-1.5" : "gap-3 p-4"}`}
               >
                 <button
                   type="button"
                   onClick={() => toggleUnavailable(entry.itemId, true)}
-                  className="tap-target flex flex-shrink-0 items-center justify-center rounded-full p-2 sm:p-0 hover:opacity-80 transition-opacity"
+                  className={`tap-target flex flex-shrink-0 items-center justify-center rounded-full hover:opacity-80 transition-opacity ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
                   aria-label={`Mark ${entry.name} as available`}
                 >
-                  <span className="flex w-7 h-7 sm:w-6 sm:h-6 items-center justify-center rounded-full bg-[var(--unavailable)]" aria-hidden>
-                    <svg className="w-5 h-5 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className={`flex items-center justify-center rounded-full bg-[var(--unavailable)] ${compact ? "w-5 h-5" : "w-7 h-7 sm:w-6 sm:h-6"}`} aria-hidden>
+                    <svg className={`text-white ${compact ? "w-3 h-3" : "w-5 h-5 sm:w-4 sm:h-4"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeWidth={2.5} d="M7 7l10 10M17 7l-10 10" />
                     </svg>
                   </span>
                 </button>
-                <div className="flex-1 min-w-0">
+                <div className={`flex-1 min-w-0 ${compact ? "flex items-center gap-2" : ""}`}>
                   <Link
                     href={`/items/${entry.id}`}
-                    className="font-medium text-[var(--foreground)] no-underline line-through hover:underline"
+                    className={`font-medium text-[var(--foreground)] no-underline line-through hover:underline ${compact ? "flex-shrink-0" : ""}`}
                   >
                     {entry.name}
                   </Link>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className={`flex items-center gap-1 ${compact ? "ml-auto flex-shrink-0" : "gap-2 mt-0.5"}`}>
                     {(entry.category || entry.defaultStore) && (
-                      <span className="text-sm text-[var(--muted)] truncate">
+                      <span className={`text-[var(--muted)] truncate ${compact ? "text-xs" : "text-sm"}`}>
                         {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
                       </span>
                     )}
@@ -348,30 +373,30 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
             {picked.map((entry) => (
               <li
                 key={entry.itemId}
-                className="flex items-center gap-3 bg-[var(--success-bg)] rounded-xl border border-[var(--success)]/30 p-4 opacity-90"
+                className={`flex items-center bg-[var(--success-bg)] rounded-xl border border-[var(--success)]/30 opacity-90 ${compact ? "gap-2 px-2 py-1.5" : "gap-3 p-4"}`}
               >
                 <button
                   type="button"
                   onClick={() => togglePicked(entry.itemId, true)}
-                  className="tap-target flex flex-shrink-0 items-center justify-center rounded-full p-2 sm:p-0 hover:opacity-80 transition-opacity"
+                  className={`tap-target flex flex-shrink-0 items-center justify-center rounded-full hover:opacity-80 transition-opacity ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
                   aria-label={`Uncheck ${entry.name}`}
                 >
-                  <span className="flex w-7 h-7 sm:w-6 sm:h-6 items-center justify-center rounded-full bg-[var(--success)]" aria-hidden>
-                    <svg className="w-5 h-5 sm:w-4 sm:h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <span className={`flex items-center justify-center rounded-full bg-[var(--success)] ${compact ? "w-5 h-5" : "w-7 h-7 sm:w-6 sm:h-6"}`} aria-hidden>
+                    <svg className={`text-white ${compact ? "w-3 h-3" : "w-5 h-5 sm:w-4 sm:h-4"}`} fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </span>
                 </button>
-                <div className="flex-1 min-w-0">
+                <div className={`flex-1 min-w-0 ${compact ? "flex items-center gap-2" : ""}`}>
                   <Link
                     href={`/items/${entry.id}`}
-                    className="font-medium text-[var(--foreground)] no-underline line-through hover:underline"
+                    className={`font-medium text-[var(--foreground)] no-underline line-through hover:underline ${compact ? "flex-shrink-0" : ""}`}
                   >
                     {entry.name}
                   </Link>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className={`flex items-center gap-1 ${compact ? "ml-auto flex-shrink-0" : "gap-2 mt-0.5"}`}>
                     {(entry.category || entry.defaultStore) && (
-                      <span className="text-sm text-[var(--muted)] truncate">
+                      <span className={`text-[var(--muted)] truncate ${compact ? "text-xs" : "text-sm"}`}>
                         {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
                       </span>
                     )}
