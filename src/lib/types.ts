@@ -10,6 +10,7 @@ export interface ListEntry {
   itemId: string;
   pickedUp: boolean;
   unavailable?: boolean;
+  storeOverride?: string | null;
   addedAt: string;
 }
 

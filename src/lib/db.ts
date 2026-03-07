@@ -134,6 +134,22 @@ export async function setUnavailable(
   return entry;
 }
 
+export async function setListEntryStore(
+  itemId: string,
+  store: string | null
+): Promise<ListEntry | null> {
+  const db = await readDb();
+  const entry = db.listEntries.find((e) => e.itemId === itemId);
+  if (!entry) return null;
+  if (store) {
+    entry.storeOverride = store;
+  } else {
+    delete entry.storeOverride;
+  }
+  await writeDb(db);
+  return entry;
+}
+
 export async function removeFromList(itemId: string): Promise<boolean> {
   const db = await readDb();
   const before = db.listEntries.length;

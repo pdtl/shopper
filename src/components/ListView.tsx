@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { getListAction, setPickedUpAction, setUnavailableAction, removeFromListAction, clearListAction } from "@/app/actions";
+import { getListAction, setPickedUpAction, setUnavailableAction, setListEntryStoreAction, removeFromListAction, clearListAction } from "@/app/actions";
 import type { Item, ListEntry } from "@/lib/types";
 
 type ListItem = Item & ListEntry;
@@ -14,6 +14,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [searchText, setSearchText] = useState("");
   const [removeConfirmItem, setRemoveConfirmItem] = useState<ListItem | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [editingStoreItemId, setEditingStoreItemId] = useState<string | null>(null);
   const [compact, setCompact] = useState(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("shopper-list-compact") === "true";
@@ -44,7 +45,11 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const stores = useMemo(
     () =>
       Array.from(
-        new Set(list.map((e) => e.defaultStore).filter((s): s is string => s != null))
+        new Set(
+          list.flatMap((e) =>
+            [e.defaultStore, e.storeOverride].filter((s): s is string => s != null && s !== "")
+          )
+        )
       ).sort(),
     [list]
   );
@@ -56,7 +61,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
       result = result.filter((e) => e.name.toLowerCase().includes(term));
     }
     if (selectedStore) {
-      result = result.filter((e) => e.defaultStore === selectedStore);
+      result = result.filter((e) => (e.storeOverride ?? e.defaultStore) === selectedStore);
     }
     if (selectedCategory) {
       result = result.filter((e) => e.category === selectedCategory);
@@ -98,6 +103,49 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
     if (ok) {
       setList((prev) => prev.filter((e) => e.itemId !== itemId));
     }
+  }
+
+  async function handleStoreChange(itemId: string, store: string) {
+    setEditingStoreItemId(null);
+    const override = store || null;
+    const { entry } = await setListEntryStoreAction(itemId, override);
+    if (entry) {
+      setList((prev) =>
+        prev.map((e) => e.itemId === itemId ? { ...e, storeOverride: entry.storeOverride } : e)
+      );
+    }
+  }
+
+  function renderStoreCell(entry: ListItem) {
+    const effectiveStore = entry.storeOverride ?? entry.defaultStore;
+    if (!effectiveStore) return null;
+    if (editingStoreItemId === entry.itemId) {
+      return (
+        <select
+          autoFocus
+          defaultValue={entry.storeOverride ?? ""}
+          onChange={(ev) => handleStoreChange(entry.itemId, ev.target.value)}
+          onBlur={() => setEditingStoreItemId(null)}
+          onClick={(ev) => ev.stopPropagation()}
+          className="text-[var(--foreground)] bg-[var(--card)] border border-[var(--accent)] rounded px-1 text-xs focus:outline-none"
+        >
+          <option value="">Default ({entry.defaultStore || "none"})</option>
+          {stores.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+      );
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => setEditingStoreItemId(entry.itemId)}
+        className="text-[var(--muted)] hover:text-[var(--accent)] underline decoration-dashed underline-offset-2 transition-colors"
+        title="Tap to change store for this trip"
+      >
+        {effectiveStore}
+      </button>
+    );
   }
 
   async function confirmClearList() {
@@ -264,9 +312,11 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                     {entry.name}
                   </Link>
                   <div className={`flex items-center gap-1 ${compact ? "ml-auto flex-shrink-0" : "gap-2 mt-0.5"}`}>
-                    {(entry.category || entry.defaultStore) && (
-                      <span className={`text-[var(--muted)] truncate ${compact ? "text-xs" : "text-sm"}`}>
-                        {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
+                    {(entry.category || (entry.storeOverride ?? entry.defaultStore)) && (
+                      <span className={`text-[var(--muted)] flex items-center gap-1 min-w-0 ${compact ? "text-xs" : "text-sm"}`}>
+                        {entry.category && <span className="truncate">{entry.category}</span>}
+                        {entry.category && (entry.storeOverride ?? entry.defaultStore) && <span>·</span>}
+                        {renderStoreCell(entry)}
                       </span>
                     )}
                     <button
@@ -330,9 +380,11 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                     {entry.name}
                   </Link>
                   <div className={`flex items-center gap-1 ${compact ? "ml-auto flex-shrink-0" : "gap-2 mt-0.5"}`}>
-                    {(entry.category || entry.defaultStore) && (
-                      <span className={`text-[var(--muted)] truncate ${compact ? "text-xs" : "text-sm"}`}>
-                        {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
+                    {(entry.category || (entry.storeOverride ?? entry.defaultStore)) && (
+                      <span className={`text-[var(--muted)] flex items-center gap-1 min-w-0 ${compact ? "text-xs" : "text-sm"}`}>
+                        {entry.category && <span className="truncate">{entry.category}</span>}
+                        {entry.category && (entry.storeOverride ?? entry.defaultStore) && <span>·</span>}
+                        {renderStoreCell(entry)}
                       </span>
                     )}
                     <button
@@ -395,9 +447,11 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                     {entry.name}
                   </Link>
                   <div className={`flex items-center gap-1 ${compact ? "ml-auto flex-shrink-0" : "gap-2 mt-0.5"}`}>
-                    {(entry.category || entry.defaultStore) && (
-                      <span className={`text-[var(--muted)] truncate ${compact ? "text-xs" : "text-sm"}`}>
-                        {[entry.category, entry.defaultStore].filter(Boolean).join(" · ")}
+                    {(entry.category || (entry.storeOverride ?? entry.defaultStore)) && (
+                      <span className={`text-[var(--muted)] flex items-center gap-1 min-w-0 ${compact ? "text-xs" : "text-sm"}`}>
+                        {entry.category && <span className="truncate">{entry.category}</span>}
+                        {entry.category && (entry.storeOverride ?? entry.defaultStore) && <span>·</span>}
+                        {renderStoreCell(entry)}
                       </span>
                     )}
                     <button
