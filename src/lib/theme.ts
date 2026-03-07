@@ -1,32 +1,22 @@
 export const THEME_STORAGE_KEY = "shopper-theme";
 
-const VALID_THEMES = [
-  "default",
-  "bright",
-  "mint",
-  "sky",
-  "lavender",
-  "sunny",
-  "snow",
-] as const;
+const VALID_THEMES = ["sprout", "blossom", "midnight", "forest"] as const;
 
 export type ThemeId = (typeof VALID_THEMES)[number];
 
-export const THEMES: { id: ThemeId; label: string }[] = [
-  { id: "default", label: "Warm" },
-  { id: "bright", label: "Bright" },
-  { id: "mint", label: "Mint" },
-  { id: "sky", label: "Sky" },
-  { id: "lavender", label: "Lavender" },
-  { id: "sunny", label: "Sunny" },
-  { id: "snow", label: "Snow" },
-];
+export const THEMES: { id: ThemeId; label: string; mode: "light" | "dark" }[] =
+  [
+    { id: "sprout", label: "Sprout", mode: "light" },
+    { id: "blossom", label: "Blossom", mode: "light" },
+    { id: "midnight", label: "Midnight", mode: "dark" },
+    { id: "forest", label: "Forest", mode: "dark" },
+  ];
 
 export function getStoredTheme(): ThemeId {
-  if (typeof window === "undefined") return "default";
+  if (typeof window === "undefined") return "sprout";
   const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
   if (VALID_THEMES.includes(stored as ThemeId)) return stored as ThemeId;
-  return "default";
+  return "sprout";
 }
 
 export function setStoredTheme(theme: ThemeId): void {

@@ -25,7 +25,7 @@ const secondaryLinks = [
 
 export function Nav() {
   const path = usePathname();
-  const [theme, setTheme] = useState<ThemeId>("default");
+  const [theme, setTheme] = useState<ThemeId>("sprout");
   const [themeOpen, setThemeOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -77,7 +77,7 @@ export function Nav() {
         : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)]"
     }`;
 
-  const currentThemeLabel = THEMES.find((t) => t.id === theme)?.label ?? "Warm";
+  const currentThemeLabel = THEMES.find((t) => t.id === theme)?.label ?? "Sprout";
 
   return (
     <>
@@ -108,7 +108,25 @@ export function Nav() {
                   role="listbox"
                   className="absolute right-0 top-full mt-1 py-1 min-w-[10rem] bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-20"
                 >
-                  {THEMES.map((t) => (
+                  <li className="px-4 py-1 text-xs text-[var(--muted)]">Light</li>
+                  {THEMES.filter((t) => t.mode === "light").map((t) => (
+                    <li key={t.id} role="option" aria-selected={theme === t.id}>
+                      <button
+                        type="button"
+                        onClick={() => pickTheme(t.id)}
+                        className={`tap-target w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${
+                          theme === t.id
+                            ? "bg-[var(--accent)] text-[var(--foreground)] font-medium"
+                            : "text-[var(--foreground)] hover:bg-[var(--border)]"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    </li>
+                  ))}
+                  <li className="border-t border-[var(--border)] my-1" />
+                  <li className="px-4 py-1 text-xs text-[var(--muted)]">Dark</li>
+                  {THEMES.filter((t) => t.mode === "dark").map((t) => (
                     <li key={t.id} role="option" aria-selected={theme === t.id}>
                       <button
                         type="button"
@@ -197,8 +215,24 @@ export function Nav() {
                   Feedback
                 </button>
                 <div className="border-t border-[var(--border)] my-1" />
-                <div className="px-4 py-1.5 text-xs text-[var(--muted)]">Theme</div>
-                {THEMES.map((t) => (
+                <div className="px-4 py-1.5 text-xs text-[var(--muted)]">Light</div>
+                {THEMES.filter((t) => t.mode === "light").map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => { pickTheme(t.id); setMenuOpen(false); }}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                      theme === t.id
+                        ? "bg-[var(--accent)] text-[var(--foreground)] font-medium"
+                        : "text-[var(--foreground)] hover:bg-[var(--border)]"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+                <div className="border-t border-[var(--border)] my-1" />
+                <div className="px-4 py-1.5 text-xs text-[var(--muted)]">Dark</div>
+                {THEMES.filter((t) => t.mode === "dark").map((t) => (
                   <button
                     key={t.id}
                     type="button"

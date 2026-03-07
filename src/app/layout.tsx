@@ -34,7 +34,7 @@ export default function RootLayout({
           id="theme-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('shopper-theme');var ok=['default','bright','mint','sky','lavender','sunny','snow'];if(ok.indexOf(t)!==-1)document.documentElement.setAttribute('data-theme',t);})();`,
+            __html: `(function(){var t=localStorage.getItem('shopper-theme');var ok=['sprout','blossom','midnight','forest'];if(ok.indexOf(t)!==-1)document.documentElement.setAttribute('data-theme',t);})();`,
           }}
         />
         <Nav />
