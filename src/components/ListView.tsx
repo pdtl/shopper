@@ -110,9 +110,9 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const unavailable = filteredList.filter((e) => e.unavailable);
   const picked = filteredList.filter((e) => e.pickedUp);
 
-  const totalListCount = list.length;
-  const pickedCount = list.filter((e) => e.pickedUp).length;
-  const unavailableCount = list.filter((e) => e.unavailable).length;
+  const totalListCount = filteredList.length;
+  const pickedCount = filteredList.filter((e) => e.pickedUp).length;
+  const unavailableCount = filteredList.filter((e) => e.unavailable).length;
   const pickedPercent = totalListCount > 0 ? (pickedCount / totalListCount) * 100 : 0;
   const unavailablePercent = totalListCount > 0 ? (unavailableCount / totalListCount) * 100 : 0;
 
