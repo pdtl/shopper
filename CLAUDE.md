@@ -36,9 +36,9 @@ No test framework is configured.
 
 ### Theme System
 
-- 7 color themes defined as CSS custom properties in `src/app/globals.css` with light/dark mode support.
-- Tailwind maps semantic color names (`background`, `foreground`, `card`, `accent`, `muted`, `border`, `success`) to CSS variables in `tailwind.config.ts`.
-- Theme persisted in localStorage, applied via inline script in `layout.tsx` to prevent flash.
+- 4 color themes defined as CSS custom properties in `src/app/globals.css`: `sprout` (light), `blossom` (light), `midnight` (dark), `forest` (dark).
+- Theme IDs and metadata in `src/lib/theme.ts`. Tailwind maps semantic color names (`background`, `foreground`, `card`, `accent`, `muted`, `border`, `success`, `unavailable`) to CSS variables in `tailwind.config.ts`.
+- Theme persisted in localStorage, applied via inline script in `layout.tsx` to prevent flash. Themes do not follow system light/dark preference — selection is explicit.
 
 ### Path Alias
 

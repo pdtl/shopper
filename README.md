@@ -5,10 +5,11 @@ A mobile-optimized web app for managing a household shopping list. Add items, se
 ## Features
 
 - **Home** – Friendly landing; auth is auto-approved when run locally.
-- **Shopping list** – View list and check off items as you pick them up; filter by category (pills) or store (dropdown).
-- **Items** – Browse all items and see the latest inventory notes.
-- **Manage item** – Edit category, default store, and add inventory notes; add/remove from list.
-- **Themes** – In the nav, choose **Warm** (default), **Bright** (family-friendly), or **Mint** (soft greens). Choice is saved and follows system light/dark.
+- **Shopping list** – Check off items as you pick them up, or mark them unavailable. Filter by category (pills), store (dropdown), or search by name. Compact view toggle. Progress bar showing picked/unavailable counts. Per-trip store override. Clear list action.
+- **Items** – Browse all items with latest inventory notes.
+- **Manage item** – Edit name, category, and default store; add inventory notes; add/remove from list; delete item.
+- **Feedback** – Submit bug reports, feature requests, or comments via the nav (creates a GitHub issue).
+- **Themes** – Choose **Sprout** or **Blossom** (light) or **Midnight** or **Forest** (dark) from the nav. Choice is saved in localStorage.
 
 ## Running locally
 
@@ -17,7 +18,7 @@ Requires **Node.js 18+** (Next.js 14 requirement).
 1. Install dependencies: `npm install`
 2. (Optional) Create `.env.local` and set `SHOPPER_API_KEY=your-key` for API access. Default is `dev-key-local-only`.
 3. Run the dev server: `npm run dev`
-4. Open [http://localhost:3000](http://localhost:3000)
+4. Open [http://localhost:3001](http://localhost:3001)
 
 Data is stored in `data/db.json` (created on first write).
 
