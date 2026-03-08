@@ -29,8 +29,8 @@ export async function getItemAction(id: string) {
 
 export async function createItemAction(formData: FormData) {
   const name = formData.get("name") as string;
-  const category = (formData.get("category") as string) || null;
-  const defaultStore = (formData.get("defaultStore") as string) || null;
+  const category = ((formData.get("category") as string) || "").trim() || null;
+  const defaultStore = ((formData.get("defaultStore") as string) || "").trim() || null;
   if (!name?.trim()) return { error: "Name is required" };
   const item = await createItem({ name: name.trim(), category, defaultStore });
   revalidatePath("/items");
@@ -42,8 +42,8 @@ export async function updateItemAction(
   formData: FormData
 ) {
   const name = formData.get("name") as string | undefined;
-  const category = (formData.get("category") as string) || null;
-  const defaultStore = (formData.get("defaultStore") as string) || null;
+  const category = ((formData.get("category") as string) || "").trim() || null;
+  const defaultStore = ((formData.get("defaultStore") as string) || "").trim() || null;
   const item = await updateItem(id, {
     ...(name !== undefined && { name: name.trim() }),
     category,
@@ -101,7 +101,7 @@ export async function setUnavailableAction(itemId: string, unavailable: boolean)
 }
 
 export async function setListEntryStoreAction(itemId: string, store: string | null) {
-  const entry = await setListEntryStore(itemId, store);
+  const entry = await setListEntryStore(itemId, store?.trim() || null);
   if (entry) revalidatePath("/list");
   return { entry };
 }
