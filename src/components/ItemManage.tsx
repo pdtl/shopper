@@ -45,10 +45,7 @@ export function ItemManage({
     const res = await updateItemAction(item.id, new FormData(e.target as HTMLFormElement));
     setSaving(false);
     if (res.error) setMessage(res.error);
-    else {
-      setMessage("Saved.");
-      router.refresh();
-    }
+    else router.push("/items");
   }
 
   async function handleAddInventory(e: React.FormEvent) {
@@ -74,16 +71,25 @@ export function ItemManage({
     if (ok) window.location.href = '/items';
   }
 
-  async function handleToggleList() {
+  async function handleSaveAndAddToList(e: React.FormEvent) {
     setSaving(true);
     setMessage(null);
-    if (onList) {
-      const ok = await removeFromListAction(item.id);
-      if (ok) setOnList(false);
-    } else {
-      const res = await addToListAction(item.id);
-      if (res.entry) setOnList(true);
+    const form = (e.currentTarget as HTMLButtonElement).closest("form")!;
+    const res = await updateItemAction(item.id, new FormData(form));
+    if (res.error) {
+      setSaving(false);
+      setMessage(res.error);
+      return;
     }
+    await addToListAction(item.id);
+    router.push("/items");
+  }
+
+  async function handleRemoveFromList() {
+    setSaving(true);
+    setMessage(null);
+    const ok = await removeFromListAction(item.id);
+    if (ok) setOnList(false);
     setSaving(false);
     router.refresh();
   }
@@ -151,7 +157,7 @@ export function ItemManage({
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)]"
             />
           </div>
-          <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="flex items-center gap-3 pt-1">
             <button
               type="submit"
               disabled={saving}
@@ -159,19 +165,30 @@ export function ItemManage({
             >
               {saving ? "Saving…" : "Save"}
             </button>
-            <button
-              type="button"
-              onClick={handleToggleList}
-              disabled={saving || onList === null}
-              className="tap-target rounded-xl border border-[var(--border)] px-4 py-2 font-medium text-[var(--foreground)] hover:bg-[var(--border)]/30 disabled:opacity-50 transition-colors"
-            >
-              {onList ? "Remove from list" : "Add to list"}
-            </button>
+            {onList ? (
+              <button
+                type="button"
+                onClick={handleRemoveFromList}
+                disabled={saving}
+                className="tap-target rounded-xl border border-[var(--border)] px-4 py-2 font-medium text-[var(--foreground)] hover:bg-[var(--border)]/30 disabled:opacity-50 transition-colors"
+              >
+                Remove from list
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSaveAndAddToList}
+                disabled={saving || onList === null}
+                className="tap-target rounded-xl border border-[var(--border)] px-4 py-2 font-medium text-[var(--foreground)] hover:bg-[var(--border)]/30 disabled:opacity-50 transition-colors"
+              >
+                Save and Add to List
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setShowDeleteConfirm((v) => !v)}
               disabled={saving}
-              className="tap-target rounded-xl border border-red-300 px-4 py-2 font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50 transition-colors"
+              className="tap-target rounded-xl border border-red-300 px-4 py-2 ml-auto font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50 transition-colors"
             >
               Delete
             </button>
