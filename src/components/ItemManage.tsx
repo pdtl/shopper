@@ -71,7 +71,7 @@ export function ItemManage({
     setSaving(true);
     const { ok } = await deleteItemAction(item.id);
     setSaving(false);
-    if (ok) router.push("/items");
+    if (ok) window.location.href = '/items';
   }
 
   async function handleToggleList() {
