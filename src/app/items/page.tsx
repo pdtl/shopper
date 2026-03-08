@@ -14,7 +14,7 @@ export default async function ItemsPage() {
         All items
       </h1>
       <p className="text-[var(--muted)] mb-6">
-        Browse items and see the latest inventory notes. Tap to manage category and inventory.
+        Use this page to add items to your shopping list or update your current inventory.
       </p>
       <ItemGrid items={items} inventoryByItem={inventoryByItem} itemIdsOnList={itemIdsOnList} />
     </div>

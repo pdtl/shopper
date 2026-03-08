@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { getListAction, addToListAction, removeFromListAction } from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { getListAction, addToListAction, removeFromListAction, createItemAction } from "@/app/actions";
 import type { Item, InventoryNote } from "@/lib/types";
 import { timeAgo } from "@/lib/timeAgo";
 
@@ -16,8 +17,10 @@ export function ItemGrid({
   itemIdsOnList: string[];
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedStore, setSelectedStore] = useState<string>("");
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+  const [creating, setCreating] = useState(false);
+  const router = useRouter();
   const [onListIds, setOnListIds] = useState<Set<string>>(
     () => new Set(itemIdsOnList)
   );
@@ -56,6 +59,12 @@ export function ItemGrid({
     [items]
   );
 
+  const exactMatch = useMemo(() => {
+    if (!searchText.trim()) return true;
+    const term = searchText.trim().toLowerCase();
+    return items.some((e) => e.name.toLowerCase() === term);
+  }, [items, searchText]);
+
   const filteredItems = useMemo(() => {
     let result = items;
     if (searchText) {
@@ -70,6 +79,19 @@ export function ItemGrid({
     }
     return result;
   }, [items, searchText, selectedStore, selectedCategory]);
+
+  async function handleCreateNew() {
+    const name = searchText.trim();
+    if (!name) return;
+    setCreating(true);
+    const fd = new FormData();
+    fd.append("name", name);
+    const result = await createItemAction(fd);
+    setCreating(false);
+    if (result.item) {
+      router.push(`/items/${result.item.id}`);
+    }
+  }
 
   const groupedItems = useMemo(() => {
     const sorted = [...filteredItems].sort((a, b) =>
@@ -92,6 +114,10 @@ export function ItemGrid({
     setSelectedCategory((prev) => (prev === category ? null : category));
   }
 
+  function selectStore(store: string | null) {
+    setSelectedStore((prev) => (prev === store ? null : store));
+  }
+
   if (items.length === 0) {
     return (
       <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-8 text-center text-[var(--muted)]">
@@ -108,47 +134,20 @@ export function ItemGrid({
 
   const hasCategories = categories.length > 0;
   const hasStores = stores.length > 0;
-  const showAll = selectedCategory === null;
+  const showAllCategories = selectedCategory === null;
+  const showAllStores = selectedStore === null;
 
   return (
     <div className="space-y-4">
-      <input
-        type="text"
-        value={searchText}
-        onChange={(e) => setSearchText(e.target.value)}
-        placeholder="Search items..."
-        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-      />
       {(hasStores || hasCategories) && (
         <div className="space-y-3">
-          {hasStores && (
-            <div className="flex flex-wrap items-center gap-2">
-              <label htmlFor="items-store-filter" className="text-sm text-[var(--muted)]">
-                Store:
-              </label>
-              <select
-                id="items-store-filter"
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                aria-label="Filter by store"
-              >
-                <option value="">All</option>
-                {stores.map((store) => (
-                  <option key={store} value={store}>
-                    {store}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
           {hasCategories && (
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => selectCategory(null)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  showAll
+                  showAllCategories
                     ? "bg-[var(--accent)] text-white"
                     : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
                 }`}
@@ -174,14 +173,59 @@ export function ItemGrid({
               })}
             </div>
           )}
+          {hasStores && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => selectStore(null)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  showAllStores
+                    ? "bg-[var(--foreground)] text-[var(--background)]"
+                    : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
+                }`}
+              >
+                All
+              </button>
+              {stores.map((store) => {
+                const active = selectedStore === store;
+                return (
+                  <button
+                    key={store}
+                    type="button"
+                    onClick={() => selectStore(store)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-[var(--foreground)] text-[var(--background)]"
+                        : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
+                    }`}
+                  >
+                    {store}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
-      <Link
-        href="/items/new"
-        className="block tap-target bg-[var(--card)] rounded-xl border-2 border-dashed border-[var(--border)] p-4 text-center text-[var(--muted)] font-medium no-underline hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
-      >
-        + Add new item
-      </Link>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="Find or create new"
+          className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+        />
+        {searchText.trim() && !exactMatch && (
+          <button
+            type="button"
+            onClick={handleCreateNew}
+            disabled={creating}
+            className="flex-shrink-0 px-3 py-2 rounded-full text-sm font-medium bg-[var(--accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {creating ? "Creating…" : "Create New"}
+          </button>
+        )}
+      </div>
       <div className="space-y-6">
         {groupedItems.map(([category, groupItems]) => (
           <div key={category ?? "__none__"}>
