@@ -9,6 +9,7 @@ import {
   addToListAction,
   removeFromListAction,
   getListAction,
+  deleteItemAction,
 } from "@/app/actions";
 import type { Item, InventoryNote } from "@/lib/types";
 
@@ -28,6 +29,7 @@ export function ItemManage({
   const [onList, setOnList] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     getListAction().then((list) => {
@@ -63,6 +65,13 @@ export function ItemManage({
       setMessage("Inventory note added.");
       router.refresh();
     }
+  }
+
+  async function handleDelete() {
+    setSaving(true);
+    const { ok } = await deleteItemAction(item.id);
+    setSaving(false);
+    if (ok) router.push("/items");
   }
 
   async function handleToggleList() {
@@ -204,6 +213,47 @@ export function ItemManage({
         >
           {onList ? "Remove from list" : "Add to list"}
         </button>
+      </section>
+
+      <section className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6">
+        <h2 className="text-lg font-semibold text-[var(--foreground)] mb-1">
+          Delete item
+        </h2>
+        <p className="text-sm text-[var(--muted)] mb-4">
+          Permanently removes this item and any associated inventory notes. If it&apos;s on your shopping list, it will be removed from there too.
+        </p>
+        {!showDeleteConfirm ? (
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="tap-target rounded-xl border-2 border-red-400 px-4 py-2 font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+          >
+            Delete item
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-[var(--foreground)]">
+              Are you sure? This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="tap-target rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--muted)] hover:bg-[var(--border)]/30 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={saving}
+                className="tap-target rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {saving ? "Deleting…" : "Yes, delete"}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );
