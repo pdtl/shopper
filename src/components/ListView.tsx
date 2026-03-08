@@ -15,18 +15,6 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [removeConfirmItem, setRemoveConfirmItem] = useState<ListItem | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [editingStoreItemId, setEditingStoreItemId] = useState<string | null>(null);
-  const [compact, setCompact] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("shopper-list-compact") === "true";
-  });
-
-  function toggleCompact() {
-    setCompact((prev) => {
-      const next = !prev;
-      localStorage.setItem("shopper-list-compact", String(next));
-      return next;
-    });
-  }
 
   // Refetch list when this page is shown so we always see fresh picked/shopped state
   // after navigating away and back (avoids stale client-side router cache).
@@ -68,6 +56,25 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
     }
     return result;
   }, [list, searchText, selectedStore, selectedCategory]);
+
+  const pending = useMemo(() => filteredList.filter((e) => !e.pickedUp && !e.unavailable), [filteredList]);
+  const unavailable = useMemo(() => filteredList.filter((e) => e.unavailable).sort((a, b) => a.name.localeCompare(b.name)), [filteredList]);
+  const picked = useMemo(() => filteredList.filter((e) => e.pickedUp).sort((a, b) => a.name.localeCompare(b.name)), [filteredList]);
+
+  const pendingGrouped = useMemo(() => {
+    const sorted = [...pending].sort((a, b) => a.name.localeCompare(b.name));
+    const map = new Map<string | null, typeof sorted>();
+    for (const item of sorted) {
+      const key = item.category ?? null;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(item);
+    }
+    return [...map.entries()].sort(([a], [b]) => {
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return a.localeCompare(b);
+    });
+  }, [pending]);
 
   function selectCategory(category: string | null) {
     setSelectedCategory((prev) => (prev === category ? null : category));
@@ -154,13 +161,9 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
     if (ok) setList([]);
   }
 
-  const pending = filteredList.filter((e) => !e.pickedUp && !e.unavailable);
-  const unavailable = filteredList.filter((e) => e.unavailable);
-  const picked = filteredList.filter((e) => e.pickedUp);
-
   const totalListCount = filteredList.length;
-  const pickedCount = filteredList.filter((e) => e.pickedUp).length;
-  const unavailableCount = filteredList.filter((e) => e.unavailable).length;
+  const pickedCount = picked.length;
+  const unavailableCount = unavailable.length;
   const pickedPercent = totalListCount > 0 ? (pickedCount / totalListCount) * 100 : 0;
   const unavailablePercent = totalListCount > 0 ? (unavailableCount / totalListCount) * 100 : 0;
 
@@ -190,17 +193,6 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
               ))}
             </select>
           )}
-          <button
-            type="button"
-            onClick={toggleCompact}
-            aria-label={compact ? "Switch to normal view" : "Switch to compact view"}
-            className="flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
-            <span>Compact</span>
-            <span className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ${compact ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}>
-              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${compact ? "translate-x-4" : "translate-x-0"}`} />
-            </span>
-          </button>
         </div>
       </div>
       <p className="text-[var(--muted)] mb-6">
@@ -227,39 +219,39 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
         </div>
       ) : (
         <div className="space-y-6">
-      {hasCategories && (
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => selectCategory(null)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              showAll
-                ? "bg-[var(--accent)] text-white"
-                : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
-            }`}
-          >
-            All
-          </button>
-          {categories.map((cat) => {
-            const active = selectedCategory === cat;
-            return (
+          {hasCategories && (
+            <div className="flex flex-wrap gap-2">
               <button
-                key={cat}
                 type="button"
-                onClick={() => selectCategory(cat)}
+                onClick={() => selectCategory(null)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  active
+                  showAll
                     ? "bg-[var(--accent)] text-white"
                     : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
                 }`}
               >
-                {cat}
+                All
               </button>
-            );
-          })}
-        </div>
-      )}
-          {/* Progress bar: picked + unavailable vs total on full list */}
+              {categories.map((cat) => {
+                const active = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => selectCategory(cat)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {/* Progress bar */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-sm">
               <span className="text-[var(--muted)]">Progress</span>
@@ -285,193 +277,195 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
               />
             </div>
           </div>
-      {pending.length > 0 && (
-        <section>
-          <h2 className="text-sm font-medium text-[var(--muted)] mb-2">
-            To get
-          </h2>
-          <ul className="space-y-1">
-            {pending.map((entry) => (
-              <li
-                key={entry.itemId}
-                className={`flex items-center bg-[var(--card)] rounded-xl border border-[var(--border)] ${compact ? "gap-2 px-2 py-1.5" : "gap-3 p-4"}`}
-              >
-                <button
-                  type="button"
-                  onClick={() => togglePicked(entry.itemId, false)}
-                  className={`flex flex-shrink-0 items-center justify-center rounded-full hover:bg-[var(--accent)]/20 transition-colors ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
-                  aria-label={`Mark ${entry.name} as picked up`}
-                >
-                  <span className={`block rounded-full border-2 border-[var(--accent)] bg-transparent ${compact ? "w-5 h-5" : "w-7 h-7 sm:w-6 sm:h-6"}`} aria-hidden />
-                </button>
-                <div className={`flex-1 min-w-0 ${compact ? "flex items-center gap-2" : ""}`}>
-                  <Link
-                    href={`/items/${entry.id}`}
-                    className={`font-medium text-[var(--foreground)] no-underline hover:underline ${compact ? "flex-shrink-0" : ""}`}
-                  >
-                    {entry.name}
-                  </Link>
-                  <div className={`flex items-center gap-1 ${compact ? "ml-auto flex-shrink-0" : "gap-2 mt-0.5"}`}>
-                    {(entry.category || (entry.storeOverride ?? entry.defaultStore)) && (
-                      <span className={`text-[var(--muted)] flex items-center gap-1 min-w-0 ${compact ? "text-xs" : "text-sm"}`}>
-                        {entry.category && <span className="truncate">{entry.category}</span>}
-                        {entry.category && (entry.storeOverride ?? entry.defaultStore) && <span>·</span>}
-                        {renderStoreCell(entry)}
-                      </span>
+          {/* To get — grouped by category */}
+          {pending.length > 0 && (
+            <section>
+              <h2 className="text-sm font-medium text-[var(--muted)] mb-2">To get</h2>
+              <div className="space-y-4">
+                {pendingGrouped.map(([category, entries]) => (
+                  <div key={category ?? "__none__"}>
+                    {category && (
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1 px-1">
+                        {category}
+                      </h3>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => toggleUnavailable(entry.itemId, false)}
-                      className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--unavailable)]/20 hover:text-[var(--unavailable)] transition-colors"
-                      aria-label={`Mark ${entry.name} as unavailable`}
-                      title="Mark unavailable"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <circle cx="12" cy="12" r="9" strokeWidth={2} />
-                        <path strokeLinecap="round" strokeWidth={2} d="M9 9l6 6M15 9l-6 6" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRemoveConfirmItem(entry)}
-                      className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
-                      aria-label={`Remove ${entry.name} from list`}
-                      title="Remove from list"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    <ul className="space-y-1">
+                      {entries.map((entry) => (
+                        <li
+                          key={entry.itemId}
+                          className="flex items-center bg-[var(--card)] rounded-xl border border-[var(--border)] gap-2 px-2 py-1.5"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => togglePicked(entry.itemId, false)}
+                            className="flex flex-shrink-0 items-center justify-center rounded-full hover:bg-[var(--accent)]/20 transition-colors p-0.5"
+                            aria-label={`Mark ${entry.name} as picked up`}
+                          >
+                            <span className="block rounded-full border-2 border-[var(--accent)] bg-transparent w-5 h-5" aria-hidden />
+                          </button>
+                          <div className="flex-1 min-w-0 flex items-center gap-2">
+                            <Link
+                              href={`/items/${entry.id}`}
+                              className="font-medium text-[var(--foreground)] no-underline hover:underline flex-shrink-0"
+                            >
+                              {entry.name}
+                            </Link>
+                            <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                              {(entry.storeOverride ?? entry.defaultStore) && (
+                                <span className="text-[var(--muted)] flex items-center gap-1 min-w-0 text-xs">
+                                  {renderStoreCell(entry)}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => toggleUnavailable(entry.itemId, false)}
+                                className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--unavailable)]/20 hover:text-[var(--unavailable)] transition-colors"
+                                aria-label={`Mark ${entry.name} as unavailable`}
+                                title="Mark unavailable"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <circle cx="12" cy="12" r="9" strokeWidth={2} />
+                                  <path strokeLinecap="round" strokeWidth={2} d="M9 9l6 6M15 9l-6 6" />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setRemoveConfirmItem(entry)}
+                                className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                                aria-label={`Remove ${entry.name} from list`}
+                                title="Remove from list"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {unavailable.length > 0 && (
-        <section>
-          <h2 className="text-sm font-medium text-[var(--unavailable)] mb-2">
-            Unavailable
-          </h2>
-          <ul className="space-y-1">
-            {unavailable.map((entry) => (
-              <li
-                key={entry.itemId}
-                className={`flex items-center bg-[var(--unavailable-bg)] rounded-xl border border-[var(--unavailable)]/30 opacity-90 ${compact ? "gap-2 px-2 py-1.5" : "gap-3 p-4"}`}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleUnavailable(entry.itemId, true)}
-                  className={`flex flex-shrink-0 items-center justify-center rounded-full hover:opacity-80 transition-opacity ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
-                  aria-label={`Mark ${entry.name} as available`}
-                >
-                  <span className={`flex items-center justify-center rounded-full bg-[var(--unavailable)] ${compact ? "w-5 h-5" : "w-7 h-7 sm:w-6 sm:h-6"}`} aria-hidden>
-                    <svg className={`text-white ${compact ? "w-3 h-3" : "w-5 h-5 sm:w-4 sm:h-4"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeWidth={2.5} d="M7 7l10 10M17 7l-10 10" />
-                    </svg>
-                  </span>
-                </button>
-                <div className={`flex-1 min-w-0 ${compact ? "flex items-center gap-2" : ""}`}>
-                  <Link
-                    href={`/items/${entry.id}`}
-                    className={`font-medium text-[var(--foreground)] no-underline line-through hover:underline ${compact ? "flex-shrink-0" : ""}`}
+                ))}
+              </div>
+            </section>
+          )}
+          {/* Unavailable — alphabetical */}
+          {unavailable.length > 0 && (
+            <section>
+              <h2 className="text-sm font-medium text-[var(--unavailable)] mb-2">Unavailable</h2>
+              <ul className="space-y-1">
+                {unavailable.map((entry) => (
+                  <li
+                    key={entry.itemId}
+                    className="flex items-center bg-[var(--unavailable-bg)] rounded-xl border border-[var(--unavailable)]/30 opacity-90 gap-2 px-2 py-1.5"
                   >
-                    {entry.name}
-                  </Link>
-                  <div className={`flex items-center gap-1 ${compact ? "ml-auto flex-shrink-0" : "gap-2 mt-0.5"}`}>
-                    {(entry.category || (entry.storeOverride ?? entry.defaultStore)) && (
-                      <span className={`text-[var(--muted)] flex items-center gap-1 min-w-0 ${compact ? "text-xs" : "text-sm"}`}>
-                        {entry.category && <span className="truncate">{entry.category}</span>}
-                        {entry.category && (entry.storeOverride ?? entry.defaultStore) && <span>·</span>}
-                        {renderStoreCell(entry)}
+                    <button
+                      type="button"
+                      onClick={() => toggleUnavailable(entry.itemId, true)}
+                      className="flex flex-shrink-0 items-center justify-center rounded-full hover:opacity-80 transition-opacity p-0.5"
+                      aria-label={`Mark ${entry.name} as available`}
+                    >
+                      <span className="flex items-center justify-center rounded-full bg-[var(--unavailable)] w-5 h-5" aria-hidden>
+                        <svg className="text-white w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeWidth={2.5} d="M7 7l10 10M17 7l-10 10" />
+                        </svg>
                       </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => togglePicked(entry.itemId, false)}
-                      className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--success)]/20 hover:text-[var(--success)] transition-colors"
-                      aria-label={`Mark ${entry.name} as picked up`}
-                      title="Mark as picked up"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setRemoveConfirmItem(entry)}
-                      className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
-                      aria-label={`Remove ${entry.name} from list`}
-                      title="Remove from list"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {picked.length > 0 && (
-        <section>
-          <h2 className="text-sm font-medium text-[var(--muted)] mb-2">
-            Picked up
-          </h2>
-          <ul className="space-y-1">
-            {picked.map((entry) => (
-              <li
-                key={entry.itemId}
-                className={`flex items-center bg-[var(--success-bg)] rounded-xl border border-[var(--success)]/30 opacity-90 ${compact ? "gap-2 px-2 py-1.5" : "gap-3 p-4"}`}
-              >
-                <button
-                  type="button"
-                  onClick={() => togglePicked(entry.itemId, true)}
-                  className={`flex flex-shrink-0 items-center justify-center rounded-full hover:opacity-80 transition-opacity ${compact ? "p-0.5" : "p-2 sm:p-0"}`}
-                  aria-label={`Uncheck ${entry.name}`}
-                >
-                  <span className={`flex items-center justify-center rounded-full bg-[var(--success)] ${compact ? "w-5 h-5" : "w-7 h-7 sm:w-6 sm:h-6"}`} aria-hidden>
-                    <svg className={`text-white ${compact ? "w-3 h-3" : "w-5 h-5 sm:w-4 sm:h-4"}`} fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </span>
-                </button>
-                <div className={`flex-1 min-w-0 ${compact ? "flex items-center gap-2" : ""}`}>
-                  <Link
-                    href={`/items/${entry.id}`}
-                    className={`font-medium text-[var(--foreground)] no-underline line-through hover:underline ${compact ? "flex-shrink-0" : ""}`}
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <Link
+                        href={`/items/${entry.id}`}
+                        className="font-medium text-[var(--foreground)] no-underline line-through hover:underline flex-shrink-0"
+                      >
+                        {entry.name}
+                      </Link>
+                      <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                        {(entry.storeOverride ?? entry.defaultStore) && (
+                          <span className="text-[var(--muted)] flex items-center gap-1 min-w-0 text-xs">
+                            {renderStoreCell(entry)}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => togglePicked(entry.itemId, false)}
+                          className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--success)]/20 hover:text-[var(--success)] transition-colors"
+                          aria-label={`Mark ${entry.name} as picked up`}
+                          title="Mark as picked up"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRemoveConfirmItem(entry)}
+                          className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                          aria-label={`Remove ${entry.name} from list`}
+                          title="Remove from list"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {/* Picked up — alphabetical */}
+          {picked.length > 0 && (
+            <section>
+              <h2 className="text-sm font-medium text-[var(--muted)] mb-2">Picked up</h2>
+              <ul className="space-y-1">
+                {picked.map((entry) => (
+                  <li
+                    key={entry.itemId}
+                    className="flex items-center bg-[var(--success-bg)] rounded-xl border border-[var(--success)]/30 opacity-90 gap-2 px-2 py-1.5"
                   >
-                    {entry.name}
-                  </Link>
-                  <div className={`flex items-center gap-1 ${compact ? "ml-auto flex-shrink-0" : "gap-2 mt-0.5"}`}>
-                    {(entry.category || (entry.storeOverride ?? entry.defaultStore)) && (
-                      <span className={`text-[var(--muted)] flex items-center gap-1 min-w-0 ${compact ? "text-xs" : "text-sm"}`}>
-                        {entry.category && <span className="truncate">{entry.category}</span>}
-                        {entry.category && (entry.storeOverride ?? entry.defaultStore) && <span>·</span>}
-                        {renderStoreCell(entry)}
-                      </span>
-                    )}
                     <button
                       type="button"
-                      onClick={() => setRemoveConfirmItem(entry)}
-                      className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
-                      aria-label={`Remove ${entry.name} from list`}
-                      title="Remove from list"
+                      onClick={() => togglePicked(entry.itemId, true)}
+                      className="flex flex-shrink-0 items-center justify-center rounded-full hover:opacity-80 transition-opacity p-0.5"
+                      aria-label={`Uncheck ${entry.name}`}
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      <span className="flex items-center justify-center rounded-full bg-[var(--success)] w-5 h-5" aria-hidden>
+                        <svg className="text-white w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </span>
                     </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <Link
+                        href={`/items/${entry.id}`}
+                        className="font-medium text-[var(--foreground)] no-underline line-through hover:underline flex-shrink-0"
+                      >
+                        {entry.name}
+                      </Link>
+                      <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                        {(entry.storeOverride ?? entry.defaultStore) && (
+                          <span className="text-[var(--muted)] flex items-center gap-1 min-w-0 text-xs">
+                            {renderStoreCell(entry)}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setRemoveConfirmItem(entry)}
+                          className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                          aria-label={`Remove ${entry.name} from list`}
+                          title="Remove from list"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <div className="pt-4 border-t border-[var(--border)]">
             <button
               type="button"

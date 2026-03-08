@@ -190,65 +190,56 @@ export function ItemGrid({
                 {category}
               </h2>
             )}
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {groupItems.map((item) => {
                 const note = inventoryByItem[item.id];
                 return (
-                  <li key={item.id}>
+                  <li key={item.id} className="flex items-center bg-[var(--card)] rounded-xl border border-[var(--border)] gap-2 px-2 py-1.5">
                     <Link
                       href={`/items/${item.id}`}
-                      className="block tap-target bg-[var(--card)] rounded-xl border border-[var(--border)] p-4 no-underline hover:border-[var(--accent)] transition-colors"
+                      className="flex-1 min-w-0 flex items-center gap-2 no-underline"
                     >
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-[var(--foreground)]">
-                          {item.name}
-                        </span>
-                        <span
-                          className={
-                            onListIds.has(item.id)
-                              ? "text-xs tracking-wide uppercase text-[var(--success)]"
-                              : "text-xs tracking-wide uppercase text-[var(--muted)]"
-                          }
-                        >
-                          {onListIds.has(item.id) ? "On List" : "Not on List"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            toggleOnList(item.id, onListIds.has(item.id));
-                          }}
-                          className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
-                          aria-label={onListIds.has(item.id) ? `Remove ${item.name} from list` : `Add ${item.name} to list`}
-                          title={onListIds.has(item.id) ? "Remove from list" : "Add to list"}
-                        >
-                          {onListIds.has(item.id) ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
+                      <span className="font-medium text-[var(--foreground)] flex-shrink-0">
+                        {item.name}
+                      </span>
+                      {(item.defaultStore || note) && (
+                        <span className="text-xs text-[var(--muted)] flex items-center gap-1 min-w-0">
+                          {item.defaultStore && <span className="truncate">{item.defaultStore}</span>}
+                          {item.defaultStore && note && <span>·</span>}
+                          {note && (
+                            <span className="text-[var(--accent)] truncate">
+                              Inventory: {note.note} · {timeAgo(note.createdAt)}
+                            </span>
                           )}
-                        </button>
-                      </div>
-                      {item.defaultStore && (
-                        <p className="text-sm text-[var(--muted)] mt-0.5">
-                          {item.defaultStore}
-                        </p>
-                      )}
-                      {note && (
-                        <p className="text-sm text-[var(--accent)] mt-1">
-                          Inventory: {note.note}
-                          <span className="text-[var(--muted)] font-normal">
-                            {" "}
-                            · {timeAgo(note.createdAt)}
-                          </span>
-                        </p>
+                        </span>
                       )}
                     </Link>
+                    <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                      {onListIds.has(item.id) && (
+                        <span className="text-xs tracking-wide uppercase text-[var(--success)]">On List</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleOnList(item.id, onListIds.has(item.id));
+                        }}
+                        className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                        aria-label={onListIds.has(item.id) ? `Remove ${item.name} from list` : `Add ${item.name} to list`}
+                        title={onListIds.has(item.id) ? "Remove from list" : "Add to list"}
+                      >
+                        {onListIds.has(item.id) ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </li>
                 );
               })}
