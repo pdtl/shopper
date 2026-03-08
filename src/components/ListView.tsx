@@ -9,9 +9,8 @@ type ListItem = Item & ListEntry;
 
 export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [list, setList] = useState(initialList);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedStore, setSelectedStore] = useState<string>("");
-  const [searchText, setSearchText] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedStores, setSelectedStores] = useState<string[]>([]);
   const [removeConfirmItem, setRemoveConfirmItem] = useState<ListItem | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [editingStoreItemId, setEditingStoreItemId] = useState<string | null>(null);
@@ -44,18 +43,14 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
 
   const filteredList = useMemo(() => {
     let result = list;
-    if (searchText) {
-      const term = searchText.toLowerCase();
-      result = result.filter((e) => e.name.toLowerCase().includes(term));
+    if (selectedStores.length > 0) {
+      result = result.filter((e) => selectedStores.includes(e.storeOverride ?? e.defaultStore ?? ""));
     }
-    if (selectedStore) {
-      result = result.filter((e) => (e.storeOverride ?? e.defaultStore) === selectedStore);
-    }
-    if (selectedCategory) {
-      result = result.filter((e) => e.category === selectedCategory);
+    if (selectedCategories.length > 0) {
+      result = result.filter((e) => selectedCategories.includes(e.category ?? ""));
     }
     return result;
-  }, [list, searchText, selectedStore, selectedCategory]);
+  }, [list, selectedStores, selectedCategories]);
 
   const pending = useMemo(() => filteredList.filter((e) => !e.pickedUp && !e.unavailable), [filteredList]);
   const unavailable = useMemo(() => filteredList.filter((e) => e.unavailable).sort((a, b) => a.name.localeCompare(b.name)), [filteredList]);
@@ -76,8 +71,16 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
     });
   }, [pending]);
 
-  function selectCategory(category: string | null) {
-    setSelectedCategory((prev) => (prev === category ? null : category));
+  function toggleCategory(category: string) {
+    setSelectedCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
+    );
+  }
+
+  function toggleStore(store: string) {
+    setSelectedStores((prev) =>
+      prev.includes(store) ? prev.filter((s) => s !== store) : [...prev, store]
+    );
   }
 
   async function togglePicked(itemId: string, current: boolean) {
@@ -167,46 +170,11 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const pickedPercent = totalListCount > 0 ? (pickedCount / totalListCount) * 100 : 0;
   const unavailablePercent = totalListCount > 0 ? (unavailableCount / totalListCount) * 100 : 0;
 
-  const showAll = selectedCategory === null;
   const hasCategories = categories.length > 0;
   const hasStores = stores.length > 0;
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">
-          Shopping list
-        </h1>
-        <div className="flex items-center gap-2">
-          {hasStores && (
-            <select
-              value={selectedStore}
-              onChange={(e) => setSelectedStore(e.target.value)}
-              className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              aria-label="Filter by store"
-            >
-              <option value="">All</option>
-              {stores.map((store) => (
-                <option key={store} value={store}>
-                  {store}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      </div>
-      <p className="text-[var(--muted)] mb-6">
-        Check off items as you pick them up.
-      </p>
-      {list.length > 0 && (
-        <input
-          type="text"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          placeholder="Search list..."
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)] mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-        />
-      )}
       {list.length === 0 ? (
         <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-8 text-center text-[var(--muted)]">
           <p>Your list is empty.</p>
@@ -223,32 +191,58 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => selectCategory(null)}
+                onClick={() => setSelectedCategories([])}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  showAll
+                  selectedCategories.length === 0
                     ? "bg-[var(--accent)] text-white"
                     : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
                 }`}
               >
                 All
               </button>
-              {categories.map((cat) => {
-                const active = selectedCategory === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => selectCategory(cat)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-[var(--accent)] text-white"
-                        : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                );
-              })}
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => toggleCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    selectedCategories.includes(cat)
+                      ? "bg-[var(--accent)] text-white"
+                      : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+          {hasStores && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedStores([])}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  selectedStores.length === 0
+                    ? "bg-[var(--foreground)] text-[var(--background)]"
+                    : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
+                }`}
+              >
+                All
+              </button>
+              {stores.map((store) => (
+                <button
+                  key={store}
+                  type="button"
+                  onClick={() => toggleStore(store)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    selectedStores.includes(store)
+                      ? "bg-[var(--foreground)] text-[var(--background)]"
+                      : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]/30"
+                  }`}
+                >
+                  {store}
+                </button>
+              ))}
             </div>
           )}
           {/* Progress bar */}
