@@ -109,9 +109,6 @@ export function ItemManage({
       )}
 
       <section className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6">
-        <h2 className="text-lg font-semibold text-[var(--foreground)] mb-4">
-          Category & store
-        </h2>
         <form onSubmit={handleSaveDetails} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-[var(--muted)] mb-1">
@@ -154,14 +151,52 @@ export function ItemManage({
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)]"
             />
           </div>
-          <button
-            type="submit"
-            disabled={saving}
-            className="tap-target rounded-xl bg-[var(--accent)] px-4 py-2 font-medium text-[var(--foreground)] disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Save"}
-          </button>
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <button
+              type="submit"
+              disabled={saving}
+              className="tap-target rounded-xl bg-[var(--accent)] px-4 py-2 font-medium text-[var(--foreground)] disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleList}
+              disabled={saving || onList === null}
+              className="tap-target rounded-xl border border-[var(--border)] px-4 py-2 font-medium text-[var(--foreground)] hover:bg-[var(--border)]/30 disabled:opacity-50 transition-colors"
+            >
+              {onList ? "Remove from list" : "Add to list"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm((v) => !v)}
+              disabled={saving}
+              className="tap-target rounded-xl border border-red-300 px-4 py-2 font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
         </form>
+        {showDeleteConfirm && (
+          <div className="mt-4 pt-4 border-t border-[var(--border)] flex items-center gap-3">
+            <p className="flex-1 text-sm text-[var(--muted)]">Permanently delete this item?</p>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(false)}
+              className="tap-target rounded-xl border border-[var(--border)] px-3 py-1.5 text-sm font-medium text-[var(--muted)] hover:bg-[var(--border)]/30 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={saving}
+              className="tap-target rounded-xl bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              {saving ? "Deleting…" : "Yes, delete"}
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6">
@@ -198,61 +233,6 @@ export function ItemManage({
           </ul>
         ) : (
           <p className="text-sm text-[var(--muted)]">No inventory notes yet.</p>
-        )}
-      </section>
-
-      <section className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6">
-        <h2 className="text-lg font-semibold text-[var(--foreground)] mb-4">
-          Shopping list
-        </h2>
-        <button
-          type="button"
-          onClick={handleToggleList}
-          disabled={saving}
-          className="tap-target rounded-xl border-2 border-[var(--border)] px-4 py-2 font-medium text-[var(--foreground)] hover:bg-[var(--border)] disabled:opacity-50"
-        >
-          {onList ? "Remove from list" : "Add to list"}
-        </button>
-      </section>
-
-      <section className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6">
-        <h2 className="text-lg font-semibold text-[var(--foreground)] mb-1">
-          Delete item
-        </h2>
-        <p className="text-sm text-[var(--muted)] mb-4">
-          Permanently removes this item and any associated inventory notes. If it&apos;s on your shopping list, it will be removed from there too.
-        </p>
-        {!showDeleteConfirm ? (
-          <button
-            type="button"
-            onClick={() => setShowDeleteConfirm(true)}
-            className="tap-target rounded-xl border-2 border-red-400 px-4 py-2 font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-          >
-            Delete item
-          </button>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-[var(--foreground)]">
-              Are you sure? This cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="tap-target rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--muted)] hover:bg-[var(--border)]/30 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={saving}
-                className="tap-target rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
-              >
-                {saving ? "Deleting…" : "Yes, delete"}
-              </button>
-            </div>
-          </div>
         )}
       </section>
     </div>
