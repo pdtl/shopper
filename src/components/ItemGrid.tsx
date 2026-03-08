@@ -71,6 +71,23 @@ export function ItemGrid({
     return result;
   }, [items, searchText, selectedStore, selectedCategory]);
 
+  const groupedItems = useMemo(() => {
+    const sorted = [...filteredItems].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+    const map = new Map<string | null, typeof sorted>();
+    for (const item of sorted) {
+      const key = item.category ?? null;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(item);
+    }
+    return [...map.entries()].sort(([a], [b]) => {
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return a.localeCompare(b);
+    });
+  }, [filteredItems]);
+
   function selectCategory(category: string | null) {
     setSelectedCategory((prev) => (prev === category ? null : category));
   }
@@ -165,69 +182,80 @@ export function ItemGrid({
       >
         + Add new item
       </Link>
-      <ul className="space-y-2">
-      {filteredItems.map((item) => {
-        const note = inventoryByItem[item.id];
-        return (
-          <li key={item.id}>
-            <Link
-              href={`/items/${item.id}`}
-              className="block tap-target bg-[var(--card)] rounded-xl border border-[var(--border)] p-4 no-underline hover:border-[var(--accent)] transition-colors"
-            >
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium text-[var(--foreground)]">
-                  {item.name}
-                </span>
-                <span
-                  className={
-                    onListIds.has(item.id)
-                      ? "text-xs tracking-wide uppercase text-[var(--success)]"
-                      : "text-xs tracking-wide uppercase text-[var(--muted)]"
-                  }
-                >
-                  {onListIds.has(item.id) ? "On List" : "Not on List"}
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleOnList(item.id, onListIds.has(item.id));
-                  }}
-                  className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
-                  aria-label={onListIds.has(item.id) ? `Remove ${item.name} from list` : `Add ${item.name} to list`}
-                  title={onListIds.has(item.id) ? "Remove from list" : "Add to list"}
-                >
-                  {onListIds.has(item.id) ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-              {(item.category || item.defaultStore) && (
-                <p className="text-sm text-[var(--muted)] mt-0.5">
-                  {[item.category, item.defaultStore].filter(Boolean).join(" · ")}
-                </p>
-              )}
-              {note && (
-                <p className="text-sm text-[var(--accent)] mt-1">
-                  Inventory: {note.note}
-                  <span className="text-[var(--muted)] font-normal">
-                    {" "}
-                    · {timeAgo(note.createdAt)}
-                  </span>
-                </p>
-              )}
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+      <div className="space-y-6">
+        {groupedItems.map(([category, groupItems]) => (
+          <div key={category ?? "__none__"}>
+            {category && (
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2 px-1">
+                {category}
+              </h2>
+            )}
+            <ul className="space-y-2">
+              {groupItems.map((item) => {
+                const note = inventoryByItem[item.id];
+                return (
+                  <li key={item.id}>
+                    <Link
+                      href={`/items/${item.id}`}
+                      className="block tap-target bg-[var(--card)] rounded-xl border border-[var(--border)] p-4 no-underline hover:border-[var(--accent)] transition-colors"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-[var(--foreground)]">
+                          {item.name}
+                        </span>
+                        <span
+                          className={
+                            onListIds.has(item.id)
+                              ? "text-xs tracking-wide uppercase text-[var(--success)]"
+                              : "text-xs tracking-wide uppercase text-[var(--muted)]"
+                          }
+                        >
+                          {onListIds.has(item.id) ? "On List" : "Not on List"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleOnList(item.id, onListIds.has(item.id));
+                          }}
+                          className="tap-target flex-shrink-0 p-1 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                          aria-label={onListIds.has(item.id) ? `Remove ${item.name} from list` : `Add ${item.name} to list`}
+                          title={onListIds.has(item.id) ? "Remove from list" : "Add to list"}
+                        >
+                          {onListIds.has(item.id) ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                      {item.defaultStore && (
+                        <p className="text-sm text-[var(--muted)] mt-0.5">
+                          {item.defaultStore}
+                        </p>
+                      )}
+                      {note && (
+                        <p className="text-sm text-[var(--accent)] mt-1">
+                          Inventory: {note.note}
+                          <span className="text-[var(--muted)] font-normal">
+                            {" "}
+                            · {timeAgo(note.createdAt)}
+                          </span>
+                        </p>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
