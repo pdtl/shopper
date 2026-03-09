@@ -1,13 +1,26 @@
 import { NextResponse } from "next/server";
-import { validateApiKey } from "./auth";
+import { getUserByApiKey } from "./auth";
 
-export function requireApiKey(request: Request): NextResponse | null {
+export async function requireApiKeyUser(
+  request: Request
+): Promise<{ error: NextResponse } | { userId: string }> {
   const key = request.headers.get("x-api-key");
-  if (!validateApiKey(key)) {
-    return NextResponse.json(
-      { error: "Missing or invalid x-api-key header" },
-      { status: 401 }
-    );
+  if (!key) {
+    return {
+      error: NextResponse.json(
+        { error: "Missing or invalid x-api-key header" },
+        { status: 401 }
+      ),
+    };
   }
-  return null;
+  const user = await getUserByApiKey(key);
+  if (!user) {
+    return {
+      error: NextResponse.json(
+        { error: "Missing or invalid x-api-key header" },
+        { status: 401 }
+      ),
+    };
+  }
+  return { userId: user.id };
 }

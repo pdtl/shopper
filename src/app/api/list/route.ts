@@ -1,21 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiKey } from "@/lib/api-auth";
-import {
-  getListWithPickedUp,
-  addToList,
-  removeFromList,
-} from "@/lib/db";
+import { requireApiKeyUser } from "@/lib/api-auth";
+import { getListWithPickedUp, addToList, removeFromList } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
-  const auth = requireApiKey(request);
-  if (auth) return auth;
-  const entries = await getListWithPickedUp();
+  const auth = await requireApiKeyUser(request);
+  if ("error" in auth) return auth.error;
+  const entries = await getListWithPickedUp(auth.userId);
   return NextResponse.json({ list: entries });
 }
 
 export async function POST(request: NextRequest) {
-  const auth = requireApiKey(request);
-  if (auth) return auth;
+  const auth = await requireApiKeyUser(request);
+  if ("error" in auth) return auth.error;
   let body: { itemId: string };
   try {
     body = await request.json();
@@ -28,14 +24,14 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const entry = await addToList(body.itemId);
+  const entry = await addToList(auth.userId, body.itemId);
   if (!entry) return NextResponse.json({ error: "Item not found" }, { status: 404 });
   return NextResponse.json({ entry });
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = requireApiKey(request);
-  if (auth) return auth;
+  const auth = await requireApiKeyUser(request);
+  if ("error" in auth) return auth.error;
   const { searchParams } = new URL(request.url);
   const itemId = searchParams.get("itemId");
   if (!itemId) {
@@ -44,7 +40,7 @@ export async function DELETE(request: NextRequest) {
       { status: 400 }
     );
   }
-  const ok = await removeFromList(itemId);
+  const ok = await removeFromList(auth.userId, itemId);
   if (!ok) return NextResponse.json({ error: "Not on list or not found" }, { status: 404 });
   return NextResponse.json({ removed: true });
 }

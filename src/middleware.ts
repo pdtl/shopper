@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { AUTO_APPROVE_AUTH } from "@/lib/auth";
 
+const AUTO_APPROVE_AUTH = process.env.AUTO_APPROVE_AUTH !== "false";
 const PUBLIC_PATHS = ["/", "/login"];
 const API_PREFIX = "/api/";
 
@@ -13,10 +13,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Require "auth" on all pages; for local run we auto-approve by setting a cookie
-  const session = request.cookies.get("shopper_session");
   if (AUTO_APPROVE_AUTH) {
     const res = NextResponse.next();
+    const session = request.cookies.get("shopper_session");
     if (!session?.value) {
       res.cookies.set("shopper_session", "auto-approved", {
         path: "/",
@@ -26,9 +25,11 @@ export function middleware(request: NextRequest) {
     return res;
   }
 
+  // Require session on all non-public pages
   if (PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"))) {
     return NextResponse.next();
   }
+  const session = request.cookies.get("shopper_session");
   if (!session?.value) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

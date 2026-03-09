@@ -1,183 +1,355 @@
-import { promises as fs } from "fs";
+import BetterSqlite3 from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { eq, and, desc, asc } from "drizzle-orm";
+import { mkdirSync } from "fs";
 import path from "path";
-import type { DbSchema, Item, ListEntry, InventoryNote } from "./types";
+import * as schema from "./schema";
+import type { Item, ListEntry, InventoryNote } from "./types";
 
-const DB_PATH = path.join(process.cwd(), "data", "db.json");
+const DB_PATH = path.join(process.cwd(), "data", "db.sqlite");
+mkdirSync(path.dirname(DB_PATH), { recursive: true });
+
+const sqlite = new BetterSqlite3(DB_PATH);
+sqlite.pragma("journal_mode = WAL");
+sqlite.pragma("foreign_keys = ON");
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    api_key TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    expires_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS items (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    name TEXT NOT NULL,
+    category TEXT,
+    default_store TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS list_entries (
+    item_id TEXT PRIMARY KEY REFERENCES items(id),
+    user_id TEXT NOT NULL REFERENCES users(id),
+    picked_up INTEGER NOT NULL DEFAULT 0,
+    unavailable INTEGER NOT NULL DEFAULT 0,
+    store_override TEXT,
+    added_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS inventory_notes (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    item_id TEXT NOT NULL REFERENCES items(id),
+    note TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+`);
+
+export const db = drizzle(sqlite, { schema });
 
 function randomId(): string {
   return Math.random().toString(36).slice(2, 11);
 }
 
-async function ensureDataDir(): Promise<void> {
-  const dir = path.dirname(DB_PATH);
-  await fs.mkdir(dir, { recursive: true });
+// --- Items ---
+
+export async function getAllItems(userId: string): Promise<Item[]> {
+  return db
+    .select()
+    .from(schema.items)
+    .where(eq(schema.items.userId, userId))
+    .orderBy(desc(schema.items.createdAt));
 }
 
-async function readDb(): Promise<DbSchema> {
-  try {
-    const raw = await fs.readFile(DB_PATH, "utf-8");
-    return JSON.parse(raw) as DbSchema;
-  } catch {
-    return { items: [], listEntries: [], inventoryNotes: [] };
-  }
-}
-
-async function writeDb(db: DbSchema): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), "utf-8");
-}
-
-export async function getAllItems(): Promise<Item[]> {
-  const db = await readDb();
-  return db.items.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+export async function getItemById(
+  userId: string,
+  id: string
+): Promise<Item | null> {
+  return (
+    db
+      .select()
+      .from(schema.items)
+      .where(and(eq(schema.items.id, id), eq(schema.items.userId, userId)))
+      .get() ?? null
   );
 }
 
-export async function getItemById(id: string): Promise<Item | null> {
-  const db = await readDb();
-  return db.items.find((i) => i.id === id) ?? null;
-}
-
-export async function createItem(input: {
-  name: string;
-  category?: string | null;
-  defaultStore?: string | null;
-}): Promise<Item> {
-  const db = await readDb();
-  const item: Item = {
+export async function createItem(
+  userId: string,
+  input: {
+    name: string;
+    category?: string | null;
+    defaultStore?: string | null;
+  }
+): Promise<Item> {
+  const item = {
     id: randomId(),
+    userId,
     name: input.name.trim(),
     category: input.category?.trim() || null,
     defaultStore: input.defaultStore?.trim() || null,
     createdAt: new Date().toISOString(),
   };
-  db.items.push(item);
-  await writeDb(db);
+  db.insert(schema.items).values(item).run();
   return item;
 }
 
 export async function updateItem(
+  userId: string,
   id: string,
   updates: Partial<Pick<Item, "name" | "category" | "defaultStore">>
 ): Promise<Item | null> {
-  const db = await readDb();
-  const idx = db.items.findIndex((i) => i.id === id);
-  if (idx === -1) return null;
-  db.items[idx] = { ...db.items[idx], ...updates };
-  await writeDb(db);
-  return db.items[idx];
+  const existing = await getItemById(userId, id);
+  if (!existing) return null;
+  const updated = { ...existing, ...updates };
+  db.update(schema.items)
+    .set({
+      name: updated.name,
+      category: updated.category,
+      defaultStore: updated.defaultStore,
+    })
+    .where(and(eq(schema.items.id, id), eq(schema.items.userId, userId)))
+    .run();
+  return updated;
 }
 
-export async function deleteItem(id: string): Promise<boolean> {
-  const db = await readDb();
-  const before = db.items.length;
-  db.items = db.items.filter((i) => i.id !== id);
-  db.listEntries = db.listEntries.filter((e) => e.itemId !== id);
-  db.inventoryNotes = db.inventoryNotes.filter((n) => n.itemId !== id);
-  if (db.items.length === before) return false;
-  await writeDb(db);
+export async function deleteItem(
+  userId: string,
+  id: string
+): Promise<boolean> {
+  const existing = await getItemById(userId, id);
+  if (!existing) return false;
+  db.delete(schema.listEntries)
+    .where(
+      and(
+        eq(schema.listEntries.itemId, id),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .run();
+  db.delete(schema.inventoryNotes)
+    .where(
+      and(
+        eq(schema.inventoryNotes.itemId, id),
+        eq(schema.inventoryNotes.userId, userId)
+      )
+    )
+    .run();
+  db.delete(schema.items)
+    .where(and(eq(schema.items.id, id), eq(schema.items.userId, userId)))
+    .run();
   return true;
 }
 
-export async function getListEntries(): Promise<ListEntry[]> {
-  const db = await readDb();
-  return db.listEntries.sort(
-    (a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime()
-  );
+// --- List Entries ---
+
+export async function getListEntries(userId: string): Promise<ListEntry[]> {
+  return db
+    .select()
+    .from(schema.listEntries)
+    .where(eq(schema.listEntries.userId, userId))
+    .orderBy(asc(schema.listEntries.addedAt));
 }
 
-export async function addToList(itemId: string): Promise<ListEntry | null> {
-  const db = await readDb();
-  if (!db.items.some((i) => i.id === itemId)) return null;
-  const existing = db.listEntries.find((e) => e.itemId === itemId);
+export async function addToList(
+  userId: string,
+  itemId: string
+): Promise<ListEntry | null> {
+  const item = await getItemById(userId, itemId);
+  if (!item) return null;
+
+  const existing = db
+    .select()
+    .from(schema.listEntries)
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .get();
+
   if (existing) {
-    existing.pickedUp = false;
-    existing.unavailable = false;
-    existing.addedAt = new Date().toISOString();
-    await writeDb(db);
-    return existing;
+    const updated = {
+      ...existing,
+      pickedUp: false,
+      unavailable: false,
+      addedAt: new Date().toISOString(),
+    };
+    db.update(schema.listEntries)
+      .set({ pickedUp: false, unavailable: false, addedAt: updated.addedAt })
+      .where(
+        and(
+          eq(schema.listEntries.itemId, itemId),
+          eq(schema.listEntries.userId, userId)
+        )
+      )
+      .run();
+    return updated;
   }
-  const entry: ListEntry = {
+
+  const entry = {
     itemId,
+    userId,
     pickedUp: false,
+    unavailable: false,
+    storeOverride: null,
     addedAt: new Date().toISOString(),
   };
-  db.listEntries.push(entry);
-  await writeDb(db);
+  db.insert(schema.listEntries).values(entry).run();
   return entry;
 }
 
 export async function setPickedUp(
+  userId: string,
   itemId: string,
   pickedUp: boolean
 ): Promise<ListEntry | null> {
-  const db = await readDb();
-  const entry = db.listEntries.find((e) => e.itemId === itemId);
-  if (!entry) return null;
-  entry.pickedUp = pickedUp;
-  if (pickedUp) entry.unavailable = false;
-  await writeDb(db);
-  return entry;
+  const existing = db
+    .select()
+    .from(schema.listEntries)
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .get();
+  if (!existing) return null;
+  const updates = { pickedUp, ...(pickedUp ? { unavailable: false } : {}) };
+  db.update(schema.listEntries)
+    .set(updates)
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .run();
+  return { ...existing, ...updates };
 }
 
 export async function setUnavailable(
+  userId: string,
   itemId: string,
   unavailable: boolean
 ): Promise<ListEntry | null> {
-  const db = await readDb();
-  const entry = db.listEntries.find((e) => e.itemId === itemId);
-  if (!entry) return null;
-  entry.unavailable = unavailable;
-  if (unavailable) entry.pickedUp = false;
-  await writeDb(db);
-  return entry;
+  const existing = db
+    .select()
+    .from(schema.listEntries)
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .get();
+  if (!existing) return null;
+  const updates = {
+    unavailable,
+    ...(unavailable ? { pickedUp: false } : {}),
+  };
+  db.update(schema.listEntries)
+    .set(updates)
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .run();
+  return { ...existing, ...updates };
 }
 
 export async function setListEntryStore(
+  userId: string,
   itemId: string,
   store: string | null
 ): Promise<ListEntry | null> {
-  const db = await readDb();
-  const entry = db.listEntries.find((e) => e.itemId === itemId);
-  if (!entry) return null;
-  if (store) {
-    entry.storeOverride = store;
-  } else {
-    delete entry.storeOverride;
-  }
-  await writeDb(db);
-  return entry;
+  const existing = db
+    .select()
+    .from(schema.listEntries)
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .get();
+  if (!existing) return null;
+  db.update(schema.listEntries)
+    .set({ storeOverride: store })
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .run();
+  return { ...existing, storeOverride: store };
 }
 
-export async function removeFromList(itemId: string): Promise<boolean> {
-  const db = await readDb();
-  const before = db.listEntries.length;
-  db.listEntries = db.listEntries.filter((e) => e.itemId !== itemId);
-  if (db.listEntries.length === before) return false;
-  await writeDb(db);
+export async function removeFromList(
+  userId: string,
+  itemId: string
+): Promise<boolean> {
+  const existing = db
+    .select()
+    .from(schema.listEntries)
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .get();
+  if (!existing) return false;
+  db.delete(schema.listEntries)
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .run();
   return true;
 }
 
-export async function clearList(): Promise<boolean> {
-  const db = await readDb();
-  if (db.listEntries.length === 0) return false;
-  db.listEntries = [];
-  await writeDb(db);
+export async function clearList(userId: string): Promise<boolean> {
+  const entries = await getListEntries(userId);
+  if (entries.length === 0) return false;
+  db.delete(schema.listEntries)
+    .where(eq(schema.listEntries.userId, userId))
+    .run();
   return true;
 }
 
-export async function getInventoryNotes(): Promise<InventoryNote[]> {
-  const db = await readDb();
-  return db.inventoryNotes.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+// --- Inventory Notes ---
+
+export async function getInventoryNotes(
+  userId: string
+): Promise<InventoryNote[]> {
+  return db
+    .select()
+    .from(schema.inventoryNotes)
+    .where(eq(schema.inventoryNotes.userId, userId))
+    .orderBy(desc(schema.inventoryNotes.createdAt));
 }
 
-export async function getLatestInventoryByItem(): Promise<
-  Record<string, InventoryNote>
-> {
-  const notes = await getInventoryNotes();
+export async function getLatestInventoryByItem(
+  userId: string
+): Promise<Record<string, InventoryNote>> {
+  const notes = await getInventoryNotes(userId);
   const byItem: Record<string, InventoryNote> = {};
   for (const n of notes) {
     if (!byItem[n.itemId]) byItem[n.itemId] = n;
@@ -186,40 +358,47 @@ export async function getLatestInventoryByItem(): Promise<
 }
 
 export async function addInventoryNote(
+  userId: string,
   itemId: string,
   note: string
 ): Promise<InventoryNote | null> {
-  const db = await readDb();
-  if (!db.items.some((i) => i.id === itemId)) return null;
-  const inv: InventoryNote = {
+  const item = await getItemById(userId, itemId);
+  if (!item) return null;
+  const inv = {
     id: randomId(),
+    userId,
     itemId,
     note: note.trim(),
     createdAt: new Date().toISOString(),
   };
-  db.inventoryNotes.push(inv);
-  await writeDb(db);
+  db.insert(schema.inventoryNotes).values(inv).run();
   return inv;
 }
 
-export async function getItemsOnList(): Promise<(Item & ListEntry)[]> {
-  const db = await readDb();
-  const items = db.items;
-  const entries = db.listEntries.filter((e) => !e.pickedUp && !e.unavailable);
+// --- Combined queries ---
+
+export async function getItemsOnList(
+  userId: string
+): Promise<(Item & ListEntry)[]> {
+  const allItems = await getAllItems(userId);
+  const entries = await getListEntries(userId);
   return entries
+    .filter((e) => !e.pickedUp && !e.unavailable)
     .map((e) => {
-      const item = items.find((i) => i.id === e.itemId);
+      const item = allItems.find((i) => i.id === e.itemId);
       return item ? { ...item, ...e } : null;
     })
     .filter(Boolean) as (Item & ListEntry)[];
 }
 
-export async function getListWithPickedUp(): Promise<(Item & ListEntry)[]> {
-  const db = await readDb();
-  const items = db.items;
-  return db.listEntries
+export async function getListWithPickedUp(
+  userId: string
+): Promise<(Item & ListEntry)[]> {
+  const allItems = await getAllItems(userId);
+  const entries = await getListEntries(userId);
+  return entries
     .map((e) => {
-      const item = items.find((i) => i.id === e.itemId);
+      const item = allItems.find((i) => i.id === e.itemId);
       return item ? { ...item, ...e } : null;
     })
     .filter(Boolean) as (Item & ListEntry)[];

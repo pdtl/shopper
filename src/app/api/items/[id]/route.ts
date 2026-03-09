@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiKey } from "@/lib/api-auth";
+import { requireApiKeyUser } from "@/lib/api-auth";
 import { getItemById, updateItem, deleteItem } from "@/lib/db";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const request = new Request(_request.url, _request);
-  const auth = requireApiKey(request);
-  if (auth) return auth;
+  const auth = await requireApiKeyUser(request);
+  if ("error" in auth) return auth.error;
   const { id } = await params;
-  const item = await getItemById(id);
+  const item = await getItemById(auth.userId, id);
   if (!item) return NextResponse.json({ error: "Item not found" }, { status: 404 });
   return NextResponse.json({ item });
 }
@@ -19,8 +18,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = requireApiKey(request);
-  if (auth) return auth;
+  const auth = await requireApiKeyUser(request);
+  if ("error" in auth) return auth.error;
   const { id } = await params;
   let body: { name?: string; category?: string; defaultStore?: string };
   try {
@@ -28,7 +27,7 @@ export async function PATCH(
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const item = await updateItem(id, {
+  const item = await updateItem(auth.userId, id, {
     name: body.name,
     category: body.category,
     defaultStore: body.defaultStore,
@@ -41,10 +40,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = requireApiKey(request);
-  if (auth) return auth;
+  const auth = await requireApiKeyUser(request);
+  if ("error" in auth) return auth.error;
   const { id } = await params;
-  const ok = await deleteItem(id);
+  const ok = await deleteItem(auth.userId, id);
   if (!ok) return NextResponse.json({ error: "Item not found" }, { status: 404 });
   return NextResponse.json({ deleted: true });
 }

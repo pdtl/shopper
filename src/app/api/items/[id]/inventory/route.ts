@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiKey } from "@/lib/api-auth";
+import { requireApiKeyUser } from "@/lib/api-auth";
 import { addInventoryNote } from "@/lib/db";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = requireApiKey(request);
-  if (auth) return auth;
+  const auth = await requireApiKeyUser(request);
+  if ("error" in auth) return auth.error;
   const { id: itemId } = await params;
   let body: { note: string };
   try {
@@ -21,7 +21,7 @@ export async function POST(
       { status: 400 }
     );
   }
-  const note = await addInventoryNote(itemId, body.note);
+  const note = await addInventoryNote(auth.userId, itemId, body.note);
   if (!note) return NextResponse.json({ error: "Item not found" }, { status: 404 });
   return NextResponse.json({ note });
 }

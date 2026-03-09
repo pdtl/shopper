@@ -15,13 +15,14 @@ No test framework is configured.
 
 ## Architecture
 
-**Shopper** is a Next.js 14 App Router shopping list app with TypeScript, Tailwind CSS, and a file-based JSON database.
+**Shopper** is a Next.js 14 App Router shopping list app with TypeScript, Tailwind CSS, and a SQLite database. It supports multiple users, each with isolated data.
 
 ### Data Layer
 
-- **Database**: `src/lib/db.ts` — reads/writes `data/db.json` (auto-created, gitignored). Three collections: `items`, `listEntries`, `inventoryNotes`.
-- **Server Actions**: `src/app/actions.ts` — async functions called from Server Components and Client Components for all data mutations. Uses `revalidatePath()` for cache invalidation.
-- **API Routes**: `src/app/api/` — REST endpoints for external integrations. Protected by `x-api-key` header (default: `dev-key-local-only`, configurable via `SHOPPER_API_KEY` env var). Auth logic in `src/lib/api-auth.ts`.
+- **Database**: `src/lib/db.ts` — all queries via Drizzle ORM against `data/db.sqlite` (auto-created, gitignored). All exported functions take `userId: string` as the first parameter.
+- **Schema**: `src/lib/schema.ts` — Drizzle table definitions: `users`, `sessions`, `items`, `listEntries`, `inventoryNotes`. Tables are created with `CREATE TABLE IF NOT EXISTS` on startup.
+- **Server Actions**: `src/app/actions.ts` — async functions called from Server Components and Client Components for all data mutations. Uses `revalidatePath()` for cache invalidation. Resolves `userId` via `getSessionUserId()` (reads session cookie, looks up user in DB).
+- **API Routes**: `src/app/api/` — REST endpoints for external integrations. Protected by per-user API key via `requireApiKeyUser()` in `src/lib/api-auth.ts`.
 
 ### Pages & Components
 
@@ -31,8 +32,11 @@ No test framework is configured.
 
 ### Auth
 
-- Cookie-based sessions via middleware (`src/middleware.ts`). `AUTO_APPROVE_AUTH = true` for local dev.
-- API routes use separate API key auth.
+- **Web sessions**: Cookie-based (`shopper_session`). Middleware (`src/middleware.ts`) stays thin — only checks cookie presence and redirects to `/login` if missing. No DB calls in middleware (Edge Runtime incompatible with better-sqlite3).
+- **Session resolution**: `getSessionUser(token)` in `src/lib/auth.ts` looks up the session in SQLite and returns the user.
+- **Auto-approve mode** (default): Set by `AUTO_APPROVE_AUTH` env var (true unless `AUTO_APPROVE_AUTH=false`). A `dev` user is auto-created; all requests use it. No login required.
+- **Real login**: Set `AUTO_APPROVE_AUTH=false`. Users sign up/log in at `/login`. Login/signup actions in `src/app/login/actions.ts`.
+- **API key auth**: Each user has a unique `apiKey` column. `requireApiKeyUser()` returns `{ userId }` or `{ error }`. In auto-approve mode, any request using the env API key resolves to the dev user.
 
 ### Theme System
 

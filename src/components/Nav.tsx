@@ -10,6 +10,7 @@ import {
   type ThemeId,
 } from "@/lib/theme";
 import { FeedbackModal } from "@/components/FeedbackModal";
+import { logoutAction } from "@/app/login/actions";
 
 /* Links always visible on mobile */
 const primaryLinks = [
@@ -157,6 +158,14 @@ export function Nav() {
                 {label}
               </Link>
             ))}
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                className="tap-target px-2 py-1.5 rounded-lg text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+              >
+                Sign out
+              </button>
+            </form>
           </div>
 
           {/* Always visible: List & Items */}
@@ -214,6 +223,15 @@ export function Nav() {
                 >
                   Feedback
                 </button>
+                <div className="border-t border-[var(--border)] my-1" />
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    className="w-full text-left px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </form>
                 <div className="border-t border-[var(--border)] my-1" />
                 <div className="px-4 py-1.5 text-xs text-[var(--muted)]">Light</div>
                 {THEMES.filter((t) => t.mode === "light").map((t) => (
