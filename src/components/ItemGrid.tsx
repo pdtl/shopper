@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getListAction, addToListAction, removeFromListAction, createItemAction } from "@/app/actions";
@@ -24,6 +24,20 @@ export function ItemGrid({
   const [onListIds, setOnListIds] = useState<Set<string>>(
     () => new Set(itemIdsOnList)
   );
+  const searchRef = useRef<HTMLInputElement>(null);
+  const savedSearchTopRef = useRef<number | null>(null);
+
+  // After each render, if a search-triggered scroll anchor was saved, restore it
+  useLayoutEffect(() => {
+    if (savedSearchTopRef.current !== null && searchRef.current) {
+      const newTop = searchRef.current.getBoundingClientRect().top;
+      const diff = newTop - savedSearchTopRef.current;
+      if (diff !== 0) {
+        window.scrollBy(0, diff);
+      }
+      savedSearchTopRef.current = null;
+    }
+  });
 
   // Refetch list when this page is shown so we always see fresh on-list status
   // after navigating away and back (avoids stale client-side router cache).
@@ -209,9 +223,15 @@ export function ItemGrid({
       )}
       <div className="flex items-center gap-2">
         <input
+          ref={searchRef}
           type="text"
           value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+          onChange={(e) => {
+            if (searchRef.current) {
+              savedSearchTopRef.current = searchRef.current.getBoundingClientRect().top;
+            }
+            setSearchText(e.target.value);
+          }}
           placeholder="Find or create new"
           className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         />

@@ -25,6 +25,7 @@ export const items = sqliteTable("items", {
   category: text("category"),
   defaultStore: text("default_store"),
   createdAt: text("created_at").notNull(),
+  deletedAt: text("deleted_at"),
 });
 
 export const listEntries = sqliteTable("list_entries", {

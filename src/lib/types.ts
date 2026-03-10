@@ -4,6 +4,7 @@ export interface Item {
   category: string | null;
   defaultStore: string | null;
   createdAt: string;
+  deletedAt: string | null;
 }
 
 export interface ListEntry {

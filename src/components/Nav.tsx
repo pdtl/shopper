@@ -11,6 +11,7 @@ import {
 } from "@/lib/theme";
 import { FeedbackModal } from "@/components/FeedbackModal";
 import { logoutAction } from "@/app/login/actions";
+import { CURRENT_VERSION } from "@/lib/changelog";
 
 /* Links always visible on mobile */
 const primaryLinks = [
@@ -22,6 +23,7 @@ const primaryLinks = [
 const secondaryLinks = [
   { href: "/", label: "Home" },
   { href: "/docs", label: "API" },
+  { href: "/changelog", label: "Changelog" },
 ];
 
 export function Nav() {
@@ -84,12 +86,20 @@ export function Nav() {
     <>
     <nav className="sticky top-0 z-10 bg-[var(--card)] border-b border-[var(--border)] safe-area-inset-top">
       <div className="max-w-xl mx-auto px-4 flex items-center justify-between h-14">
-        <Link
-          href="/"
-          className="font-semibold text-lg text-[var(--foreground)] no-underline"
-        >
-          Shopper
-        </Link>
+        <div className="flex items-baseline gap-2">
+          <Link
+            href="/"
+            className="font-semibold text-lg text-[var(--foreground)] no-underline"
+          >
+            Shopper
+          </Link>
+          <Link
+            href="/changelog"
+            className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] no-underline transition-colors"
+          >
+            v{CURRENT_VERSION}
+          </Link>
+        </div>
         <div className="flex items-center gap-2">
           {/* Desktop-only: theme, feedback, secondary links */}
           <div className="hidden sm:flex items-center gap-2">

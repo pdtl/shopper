@@ -1,6 +1,6 @@
 import BetterSqlite3 from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, isNull } from "drizzle-orm";
 import { mkdirSync } from "fs";
 import path from "path";
 import * as schema from "./schema";
@@ -34,7 +34,8 @@ sqlite.exec(`
     name TEXT NOT NULL,
     category TEXT,
     default_store TEXT,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    deleted_at TEXT
   );
 
   CREATE TABLE IF NOT EXISTS list_entries (
@@ -55,6 +56,9 @@ sqlite.exec(`
   );
 `);
 
+// Migrations for existing databases
+try { sqlite.exec(`ALTER TABLE items ADD COLUMN deleted_at TEXT`); } catch { /* column already exists */ }
+
 export const db = drizzle(sqlite, { schema });
 
 function randomId(): string {
@@ -67,7 +71,7 @@ export async function getAllItems(userId: string): Promise<Item[]> {
   return db
     .select()
     .from(schema.items)
-    .where(eq(schema.items.userId, userId))
+    .where(and(eq(schema.items.userId, userId), isNull(schema.items.deletedAt)))
     .orderBy(desc(schema.items.createdAt));
 }
 
@@ -79,7 +83,7 @@ export async function getItemById(
     db
       .select()
       .from(schema.items)
-      .where(and(eq(schema.items.id, id), eq(schema.items.userId, userId)))
+      .where(and(eq(schema.items.id, id), eq(schema.items.userId, userId), isNull(schema.items.deletedAt)))
       .get() ?? null
   );
 }
@@ -99,6 +103,7 @@ export async function createItem(
     category: input.category?.trim() || null,
     defaultStore: input.defaultStore?.trim() || null,
     createdAt: new Date().toISOString(),
+    deletedAt: null,
   };
   db.insert(schema.items).values(item).run();
   return item;
@@ -145,7 +150,8 @@ export async function deleteItem(
       )
     )
     .run();
-  db.delete(schema.items)
+  db.update(schema.items)
+    .set({ deletedAt: new Date().toISOString() })
     .where(and(eq(schema.items.id, id), eq(schema.items.userId, userId)))
     .run();
   return true;
