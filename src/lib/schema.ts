@@ -24,6 +24,8 @@ export const items = sqliteTable("items", {
   name: text("name").notNull(),
   category: text("category"),
   defaultStore: text("default_store"),
+  defaultUnit: text("default_unit").notNull().default("packet"),
+  defaultQuantity: integer("default_quantity").notNull().default(1),
   createdAt: text("created_at").notNull(),
   deletedAt: text("deleted_at"),
 });
@@ -40,6 +42,7 @@ export const listEntries = sqliteTable("list_entries", {
     .notNull()
     .default(false),
   storeOverride: text("store_override"),
+  quantity: integer("quantity").notNull().default(1),
   addedAt: text("added_at").notNull(),
 });
 

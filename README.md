@@ -5,9 +5,9 @@ A mobile-optimized web app for managing a household shopping list. Add items, se
 ## Features
 
 - **Home** – Friendly landing page.
-- **Shopping list** – Check off items as you pick them up, or mark them unavailable. Filter by category (pills), store (dropdown), or search by name. Compact view toggle. Progress bar showing picked/unavailable counts. Per-trip store override. Clear list action.
+- **Shopping list** – Check off items as you pick them up, or mark them unavailable. Each entry shows the item name, quantity (tap to change), and unit. Store shown as an icon — tap to override for this trip. Filter by category or store. Progress bar. Clear list action.
 - **Items** – Browse all items grouped by category (alphabetical), sorted by name within each group. Filter by category or store, or search by name. Add new items directly to the shopping list in one step.
-- **Manage item** – Edit name, category, and default store; add inventory notes; add/remove from list; delete item.
+- **Manage item** – Edit name, category, default store, default quantity, and unit; add inventory notes; add/remove from list; delete item.
 - **Feedback** – Submit bug reports, feature requests, or comments via the nav (creates a GitHub issue).
 - **Themes** – Choose **Sprout** or **Blossom** (light) or **Midnight** or **Forest** (dark) from the nav. Choice is saved in localStorage.
 

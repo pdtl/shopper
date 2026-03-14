@@ -20,7 +20,7 @@ No test framework is configured.
 ### Data Layer
 
 - **Database**: `src/lib/db.ts` — all queries via Drizzle ORM against `data/db.sqlite` (auto-created, gitignored). All exported functions take `userId: string` as the first parameter.
-- **Schema**: `src/lib/schema.ts` — Drizzle table definitions: `users`, `sessions`, `items`, `listEntries`, `inventoryNotes`. Tables are created with `CREATE TABLE IF NOT EXISTS` on startup.
+- **Schema**: `src/lib/schema.ts` — Drizzle table definitions: `users`, `sessions`, `items`, `listEntries`, `inventoryNotes`. Tables are created with `CREATE TABLE IF NOT EXISTS` on startup. New columns are added via `try/catch ALTER TABLE` migrations at the bottom of the `sqlite.exec()` block in `db.ts`.
 - **Server Actions**: `src/app/actions.ts` — async functions called from Server Components and Client Components for all data mutations. Uses `revalidatePath()` for cache invalidation. Resolves `userId` via `getSessionUserId()` (reads session cookie, looks up user in DB).
 - **API Routes**: `src/app/api/` — REST endpoints for external integrations. Protected by per-user API key via `requireApiKeyUser()` in `src/lib/api-auth.ts`.
 

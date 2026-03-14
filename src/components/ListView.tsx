@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { getListAction, setPickedUpAction, setUnavailableAction, setListEntryStoreAction, removeFromListAction, clearListAction } from "@/app/actions";
+import { getListAction, setPickedUpAction, setUnavailableAction, setListEntryStoreAction, setListEntryQuantityAction, removeFromListAction, clearListAction } from "@/app/actions";
 import type { Item, ListEntry } from "@/lib/types";
 
 type ListItem = Item & ListEntry;
@@ -14,6 +14,8 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
   const [removeConfirmItem, setRemoveConfirmItem] = useState<ListItem | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [editingStoreItemId, setEditingStoreItemId] = useState<string | null>(null);
+  const [quantityModalItem, setQuantityModalItem] = useState<ListItem | null>(null);
+  const [quantityInput, setQuantityInput] = useState("");
 
   // Refetch list when this page is shown so we always see fresh picked/shopped state
   // after navigating away and back (avoids stale client-side router cache).
@@ -126,7 +128,26 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
     }
   }
 
-  function renderStoreCell(entry: ListItem) {
+  async function handleQuantitySubmit() {
+    if (!quantityModalItem) return;
+    const val = parseInt(quantityInput, 10);
+    if (!val || val < 1 || val > 99) return;
+    const itemId = quantityModalItem.itemId;
+    setQuantityModalItem(null);
+    const { entry } = await setListEntryQuantityAction(itemId, val);
+    if (entry) {
+      setList((prev) =>
+        prev.map((e) => e.itemId === itemId ? { ...e, quantity: entry.quantity } : e)
+      );
+    }
+  }
+
+  function openQuantityModal(entry: ListItem) {
+    setQuantityInput(String(entry.quantity ?? 1));
+    setQuantityModalItem(entry);
+  }
+
+  function renderStoreIcon(entry: ListItem) {
     const effectiveStore = entry.storeOverride ?? entry.defaultStore;
     if (!effectiveStore) return null;
     if (editingStoreItemId === entry.itemId) {
@@ -150,10 +171,14 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
       <button
         type="button"
         onClick={() => setEditingStoreItemId(entry.itemId)}
-        className="text-[var(--muted)] hover:text-[var(--accent)] underline decoration-dashed underline-offset-2 transition-colors"
-        title="Tap to change store for this trip"
+        className="flex-shrink-0 p-1.5 rounded-md text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
+        title={`Store: ${effectiveStore}. Tap to change.`}
+        aria-label={`Store: ${effectiveStore}. Tap to change store for this trip.`}
       >
-        {effectiveStore}
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 22V12h6v10" />
+        </svg>
       </button>
     );
   }
@@ -298,22 +323,28 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                             <span className="block rounded-full border-2 border-[var(--accent)] bg-transparent w-5 h-5" aria-hidden />
                           </button>
                           <div className="flex-1 min-w-0 flex items-center gap-2">
-                            <Link
-                              href={`/items/${entry.id}`}
-                              className="font-medium text-[var(--foreground)] no-underline hover:underline flex-shrink-0"
+                            <button
+                              type="button"
+                              onClick={() => openQuantityModal(entry)}
+                              className="font-medium text-[var(--foreground)] hover:underline flex-shrink-0 text-left"
+                              aria-label={`${entry.name} — Quantity: ${entry.quantity ?? 1}. Tap to change.`}
                             >
                               {entry.name}
-                            </Link>
-                            <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-                              {(entry.storeOverride ?? entry.defaultStore) && (
-                                <span className="text-[var(--muted)] flex items-center gap-1 min-w-0 text-xs">
-                                  {renderStoreCell(entry)}
-                                </span>
-                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openQuantityModal(entry)}
+                              className="flex-shrink-0 text-sm font-medium text-[var(--accent)] hover:opacity-80 transition-opacity text-left"
+                              aria-hidden
+                            >
+                              {entry.quantity ?? 1}<span className="text-[0.6rem] text-[var(--muted)] ml-0.5">{entry.defaultUnit}</span>
+                            </button>
+                            <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">
+                              {renderStoreIcon(entry)}
                               <button
                                 type="button"
                                 onClick={() => toggleUnavailable(entry.itemId, false)}
-                                className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--unavailable)]/20 hover:text-[var(--unavailable)] transition-colors"
+                                className="flex-shrink-0 p-1.5 rounded-md text-[var(--muted)] hover:bg-[var(--unavailable)]/20 hover:text-[var(--unavailable)] transition-colors"
                                 aria-label={`Mark ${entry.name} as unavailable`}
                                 title="Mark unavailable"
                               >
@@ -325,7 +356,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                               <button
                                 type="button"
                                 onClick={() => setRemoveConfirmItem(entry)}
-                                className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                                className="flex-shrink-0 p-1.5 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
                                 aria-label={`Remove ${entry.name} from list`}
                                 title="Remove from list"
                               >
@@ -366,22 +397,23 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                       </span>
                     </button>
                     <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <Link
-                        href={`/items/${entry.id}`}
-                        className="font-medium text-[var(--foreground)] no-underline line-through hover:underline flex-shrink-0"
+                      <button
+                        type="button"
+                        onClick={() => openQuantityModal(entry)}
+                        className="font-medium text-[var(--foreground)] hover:underline line-through flex-shrink-0 text-left"
+                        aria-label={`${entry.name} — Quantity: ${entry.quantity ?? 1}. Tap to change.`}
                       >
                         {entry.name}
-                      </Link>
-                      <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-                        {(entry.storeOverride ?? entry.defaultStore) && (
-                          <span className="text-[var(--muted)] flex items-center gap-1 min-w-0 text-xs">
-                            {renderStoreCell(entry)}
-                          </span>
-                        )}
+                      </button>
+                      <span className="flex-shrink-0 text-sm font-medium text-[var(--muted)]">
+                        {entry.quantity ?? 1}<span className="text-[0.6rem] ml-0.5">{entry.defaultUnit}</span>
+                      </span>
+                      <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">
+                        {renderStoreIcon(entry)}
                         <button
                           type="button"
                           onClick={() => togglePicked(entry.itemId, false)}
-                          className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--success)]/20 hover:text-[var(--success)] transition-colors"
+                          className="flex-shrink-0 p-1.5 rounded-md text-[var(--muted)] hover:bg-[var(--success)]/20 hover:text-[var(--success)] transition-colors"
                           aria-label={`Mark ${entry.name} as picked up`}
                           title="Mark as picked up"
                         >
@@ -392,7 +424,7 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                         <button
                           type="button"
                           onClick={() => setRemoveConfirmItem(entry)}
-                          className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                          className="flex-shrink-0 p-1.5 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
                           aria-label={`Remove ${entry.name} from list`}
                           title="Remove from list"
                         >
@@ -430,22 +462,23 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                       </span>
                     </button>
                     <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <Link
-                        href={`/items/${entry.id}`}
-                        className="font-medium text-[var(--foreground)] no-underline line-through hover:underline flex-shrink-0"
+                      <button
+                        type="button"
+                        onClick={() => openQuantityModal(entry)}
+                        className="font-medium text-[var(--foreground)] hover:underline line-through flex-shrink-0 text-left"
+                        aria-label={`${entry.name} — Quantity: ${entry.quantity ?? 1}. Tap to change.`}
                       >
                         {entry.name}
-                      </Link>
-                      <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-                        {(entry.storeOverride ?? entry.defaultStore) && (
-                          <span className="text-[var(--muted)] flex items-center gap-1 min-w-0 text-xs">
-                            {renderStoreCell(entry)}
-                          </span>
-                        )}
+                      </button>
+                      <span className="flex-shrink-0 text-sm font-medium text-[var(--muted)]">
+                        {entry.quantity ?? 1}<span className="text-[0.6rem] ml-0.5">{entry.defaultUnit}</span>
+                      </span>
+                      <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">
+                        {renderStoreIcon(entry)}
                         <button
                           type="button"
                           onClick={() => setRemoveConfirmItem(entry)}
-                          className="flex-shrink-0 p-2 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
+                          className="flex-shrink-0 p-1.5 rounded-md text-[var(--muted)] hover:bg-[var(--border)]/50 hover:text-[var(--foreground)] transition-colors"
                           aria-label={`Remove ${entry.name} from list`}
                           title="Remove from list"
                         >
@@ -544,6 +577,52 @@ export function ListView({ initialList }: { initialList: ListItem[] }) {
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-colors"
               >
                 Clear list
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {quantityModalItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setQuantityModalItem(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="qty-modal-title"
+        >
+          <div
+            className="bg-[var(--card)] rounded-2xl border border-[var(--border)] shadow-xl max-w-xs w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="qty-modal-title" className="text-base font-semibold text-[var(--foreground)] mb-1">
+              {quantityModalItem.name}
+            </h2>
+            <p className="text-xs text-[var(--muted)] mb-4">{quantityModalItem.defaultUnit}</p>
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={quantityInput}
+              onChange={(e) => setQuantityInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleQuantitySubmit(); if (e.key === "Escape") setQuantityModalItem(null); }}
+              autoFocus
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)] text-center text-xl mb-4 focus:outline-none focus:border-[var(--accent)]"
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setQuantityModalItem(null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--muted)] bg-[var(--border)]/30 hover:bg-[var(--border)]/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleQuantitySubmit}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--accent)] hover:opacity-90 transition-opacity"
+              >
+                Set
               </button>
             </div>
           </div>

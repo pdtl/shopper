@@ -3,6 +3,8 @@ export interface Item {
   name: string;
   category: string | null;
   defaultStore: string | null;
+  defaultUnit: string;
+  defaultQuantity: number;
   createdAt: string;
   deletedAt: string | null;
 }
@@ -12,6 +14,7 @@ export interface ListEntry {
   pickedUp: boolean;
   unavailable?: boolean;
   storeOverride?: string | null;
+  quantity: number;
   addedAt: string;
 }
 

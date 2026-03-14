@@ -58,6 +58,9 @@ sqlite.exec(`
 
 // Migrations for existing databases
 try { sqlite.exec(`ALTER TABLE items ADD COLUMN deleted_at TEXT`); } catch { /* column already exists */ }
+try { sqlite.exec(`ALTER TABLE items ADD COLUMN default_unit TEXT NOT NULL DEFAULT 'packet'`); } catch { /* column already exists */ }
+try { sqlite.exec(`ALTER TABLE items ADD COLUMN default_quantity INTEGER NOT NULL DEFAULT 1`); } catch { /* column already exists */ }
+try { sqlite.exec(`ALTER TABLE list_entries ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1`); } catch { /* column already exists */ }
 
 export const db = drizzle(sqlite, { schema });
 
@@ -94,6 +97,8 @@ export async function createItem(
     name: string;
     category?: string | null;
     defaultStore?: string | null;
+    defaultUnit?: string;
+    defaultQuantity?: number;
   }
 ): Promise<Item> {
   const item = {
@@ -102,6 +107,8 @@ export async function createItem(
     name: input.name.trim(),
     category: input.category?.trim() || null,
     defaultStore: input.defaultStore?.trim() || null,
+    defaultUnit: input.defaultUnit?.trim() || "packet",
+    defaultQuantity: input.defaultQuantity ?? 1,
     createdAt: new Date().toISOString(),
     deletedAt: null,
   };
@@ -112,7 +119,7 @@ export async function createItem(
 export async function updateItem(
   userId: string,
   id: string,
-  updates: Partial<Pick<Item, "name" | "category" | "defaultStore">>
+  updates: Partial<Pick<Item, "name" | "category" | "defaultStore" | "defaultUnit" | "defaultQuantity">>
 ): Promise<Item | null> {
   const existing = await getItemById(userId, id);
   if (!existing) return null;
@@ -122,6 +129,8 @@ export async function updateItem(
       name: updated.name,
       category: updated.category,
       defaultStore: updated.defaultStore,
+      defaultUnit: updated.defaultUnit,
+      defaultQuantity: updated.defaultQuantity,
     })
     .where(and(eq(schema.items.id, id), eq(schema.items.userId, userId)))
     .run();
@@ -190,10 +199,11 @@ export async function addToList(
       ...existing,
       pickedUp: false,
       unavailable: false,
+      quantity: item.defaultQuantity,
       addedAt: new Date().toISOString(),
     };
     db.update(schema.listEntries)
-      .set({ pickedUp: false, unavailable: false, addedAt: updated.addedAt })
+      .set({ pickedUp: false, unavailable: false, quantity: item.defaultQuantity, addedAt: updated.addedAt })
       .where(
         and(
           eq(schema.listEntries.itemId, itemId),
@@ -210,6 +220,7 @@ export async function addToList(
     pickedUp: false,
     unavailable: false,
     storeOverride: null,
+    quantity: item.defaultQuantity,
     addedAt: new Date().toISOString(),
   };
   db.insert(schema.listEntries).values(entry).run();
@@ -303,6 +314,34 @@ export async function setListEntryStore(
     )
     .run();
   return { ...existing, storeOverride: store };
+}
+
+export async function setListEntryQuantity(
+  userId: string,
+  itemId: string,
+  quantity: number
+): Promise<ListEntry | null> {
+  const existing = db
+    .select()
+    .from(schema.listEntries)
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .get();
+  if (!existing) return null;
+  db.update(schema.listEntries)
+    .set({ quantity })
+    .where(
+      and(
+        eq(schema.listEntries.itemId, itemId),
+        eq(schema.listEntries.userId, userId)
+      )
+    )
+    .run();
+  return { ...existing, quantity };
 }
 
 export async function removeFromList(

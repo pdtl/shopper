@@ -8,6 +8,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "1.2",
+    date: "2026-03-13",
+    summary: "Quantity and units for list items",
+    changes: [
+      "Items now have a default quantity and unit (packet, bottle, oz, lb, bunch, items — defaults to 1 packet)",
+      "Quantity is shown on every list entry card next to the item name, with the unit in small text",
+      "Tap the item name or quantity to set a different quantity for this trip (1–99)",
+      "Store name on list cards replaced with a compact house icon — tap to override as before",
+      "Action icons on list cards use tighter spacing",
+    ],
+  },
+  {
     version: "1.1",
     date: "2026-03-09",
     summary: "Soft delete for items",
@@ -17,7 +29,7 @@ export const RELEASES: Release[] = [
   },
   {
     version: "1.0",
-    date: "2025-01-01",
+    date: "2026-03-08",
     summary: "SQLite, Drizzle ORM, and multi-user support",
     major: true,
     changes: [
@@ -31,7 +43,7 @@ export const RELEASES: Release[] = [
   },
   {
     version: "0.5",
-    date: "2024-12-01",
+    date: "2026-02-21",
     summary: "Items page overhaul",
     changes: [
       "Group items by category with collapsible section headings",
@@ -46,7 +58,7 @@ export const RELEASES: Release[] = [
   },
   {
     version: "0.4",
-    date: "2024-11-01",
+    date: "2026-02-18",
     summary: "Theme overhaul",
     changes: [
       "Replaced the original theme system with 4 Material Design 3-inspired themes",
@@ -56,7 +68,7 @@ export const RELEASES: Release[] = [
   },
   {
     version: "0.3",
-    date: "2024-10-01",
+    date: "2026-02-11",
     summary: "Search, unavailable status, store overrides, and more",
     changes: [
       "Type-to-filter search on the List and Items pages",
@@ -70,7 +82,7 @@ export const RELEASES: Release[] = [
   },
   {
     version: "0.2",
-    date: "2024-09-01",
+    date: "2026-02-05",
     summary: "List page filters and progress tracking",
     changes: [
       "Category and store filter pills on the shopping list",
@@ -83,7 +95,7 @@ export const RELEASES: Release[] = [
   },
   {
     version: "0.1",
-    date: "2024-08-01",
+    date: "2026-02-01",
     summary: "Initial release",
     changes: [
       "Shopping list with check-off and picked-up tracking",

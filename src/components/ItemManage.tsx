@@ -24,6 +24,8 @@ export function ItemManage({
   const [name, setName] = useState(item.name);
   const [category, setCategory] = useState(item.category ?? "");
   const [defaultStore, setDefaultStore] = useState(item.defaultStore ?? "");
+  const [defaultUnit, setDefaultUnit] = useState(item.defaultUnit ?? "packet");
+  const [defaultQuantity, setDefaultQuantity] = useState(String(item.defaultQuantity ?? 1));
   const [inventoryNote, setInventoryNote] = useState("");
   const [notes, setNotes] = useState(initialNotes);
   const [onList, setOnList] = useState<boolean | null>(null);
@@ -156,6 +158,42 @@ export function ItemManage({
               placeholder="Costco"
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)]"
             />
+          </div>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label htmlFor="defaultQuantity" className="block text-sm font-medium text-[var(--muted)] mb-1">
+                Default quantity
+              </label>
+              <input
+                id="defaultQuantity"
+                name="defaultQuantity"
+                type="number"
+                min={1}
+                max={99}
+                value={defaultQuantity}
+                onChange={(e) => setDefaultQuantity(e.target.value)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)]"
+              />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="defaultUnit" className="block text-sm font-medium text-[var(--muted)] mb-1">
+                Unit
+              </label>
+              <select
+                id="defaultUnit"
+                name="defaultUnit"
+                value={defaultUnit}
+                onChange={(e) => setDefaultUnit(e.target.value)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-[var(--foreground)]"
+              >
+                <option value="packet">packet</option>
+                <option value="bottle">bottle</option>
+                <option value="oz">oz</option>
+                <option value="lb">lb</option>
+                <option value="bunch">bunch</option>
+                <option value="items">items</option>
+              </select>
+            </div>
           </div>
           <div className="flex items-center gap-3 pt-1">
             <button

@@ -15,6 +15,7 @@ import {
   setPickedUp,
   setUnavailable,
   setListEntryStore,
+  setListEntryQuantity,
   getInventoryNotes,
   getLatestInventoryByItem,
   addInventoryNote,
@@ -45,12 +46,16 @@ export async function createItemAction(formData: FormData) {
   const category = ((formData.get("category") as string) || "").trim() || null;
   const defaultStore =
     ((formData.get("defaultStore") as string) || "").trim() || null;
+  const defaultUnit = ((formData.get("defaultUnit") as string) || "").trim() || "packet";
+  const defaultQuantity = Math.max(1, parseInt((formData.get("defaultQuantity") as string) || "1", 10) || 1);
   if (!name?.trim()) return { error: "Name is required" };
   const userId = await getSessionUserId();
   const item = await createItem(userId, {
     name: name.trim(),
     category,
     defaultStore,
+    defaultUnit,
+    defaultQuantity,
   });
   revalidatePath("/items");
   return { item };
@@ -61,11 +66,15 @@ export async function updateItemAction(id: string, formData: FormData) {
   const category = ((formData.get("category") as string) || "").trim() || null;
   const defaultStore =
     ((formData.get("defaultStore") as string) || "").trim() || null;
+  const defaultUnit = ((formData.get("defaultUnit") as string) || "").trim() || "packet";
+  const defaultQuantity = Math.max(1, parseInt((formData.get("defaultQuantity") as string) || "1", 10) || 1);
   const userId = await getSessionUserId();
   const item = await updateItem(userId, id, {
     ...(name !== undefined && { name: name.trim() }),
     category,
     defaultStore,
+    defaultUnit,
+    defaultQuantity,
   });
   if (!item) return { error: "Item not found" };
   revalidatePath("/items");
@@ -124,6 +133,16 @@ export async function setUnavailableAction(
 ) {
   const userId = await getSessionUserId();
   const entry = await setUnavailable(userId, itemId, unavailable);
+  if (entry) revalidatePath("/list");
+  return { entry };
+}
+
+export async function setListEntryQuantityAction(
+  itemId: string,
+  quantity: number
+) {
+  const userId = await getSessionUserId();
+  const entry = await setListEntryQuantity(userId, itemId, Math.min(99, Math.max(1, quantity)));
   if (entry) revalidatePath("/list");
   return { entry };
 }
