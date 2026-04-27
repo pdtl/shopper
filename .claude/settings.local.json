@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm run:*)",
+      "Bash(git:*)",
+      "Bash(ls /Users/pete/Documents/dev/shopper/*.md 2>/dev/null || echo \"no md files at root\")"
+    ]
+  }
+}
