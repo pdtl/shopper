@@ -30,8 +30,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   const session = request.cookies.get("shopper_session");
-  if (!session?.value) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!session?.value || session.value === "auto-approved") {
+    const res = NextResponse.redirect(new URL("/login", request.url));
+    if (session?.value === "auto-approved") {
+      res.cookies.delete("shopper_session");
+    }
+    return res;
   }
   return NextResponse.next();
 }

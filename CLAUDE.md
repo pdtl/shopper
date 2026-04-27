@@ -32,7 +32,7 @@ No test framework is configured.
 
 ### Auth
 
-- **Web sessions**: Cookie-based (`shopper_session`). Middleware (`src/middleware.ts`) stays thin — only checks cookie presence and redirects to `/login` if missing. No DB calls in middleware (Edge Runtime incompatible with better-sqlite3).
+- **Web sessions**: Cookie-based (`shopper_session`). Middleware (`src/middleware.ts`) stays thin — checks cookie presence and redirects to `/login` if missing. In real-auth mode it also treats the literal value `"auto-approved"` (left over from a previous auto-approve session) as stale: deletes the cookie and redirects. No DB calls in middleware (Edge Runtime incompatible with better-sqlite3).
 - **Session resolution**: `getSessionUser(token)` in `src/lib/auth.ts` looks up the session in SQLite and returns the user.
 - **Auto-approve mode** (default): Set by `AUTO_APPROVE_AUTH` env var (true unless `AUTO_APPROVE_AUTH=false`). A `dev` user is auto-created; all requests use it. No login required.
 - **Real login**: Set `AUTO_APPROVE_AUTH=false`. Users sign up/log in at `/login`. Login/signup actions in `src/app/login/actions.ts`.
@@ -51,3 +51,7 @@ No test framework is configured.
 ### Docker
 
 Multi-stage Dockerfile using `node:20-alpine`. Uses Next.js standalone output mode. Runs on port 3001.
+
+### Scripts
+
+- `scripts/migrate-user-data.sql` — reassigns `items`, `list_entries`, and `inventory_notes` from one user to another in a single transaction. Used for moving data off the auto-approve `dev` user after switching a deployment to real auth. Edit the FROM/TO usernames at the top before running.

@@ -1,6 +1,18 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { AUTO_APPROVE_AUTH, getSessionUser } from "@/lib/auth";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("shopper_session")?.value;
+  const user = token ? await getSessionUser(token) : null;
+
+  const greeting = AUTO_APPROVE_AUTH
+    ? "You're signed in (local mode). Jump in and start managing your list."
+    : user
+      ? `Welcome ${user.username}!`
+      : "Sign in to start managing your list.";
+
   return (
     <div className="max-w-xl mx-auto px-4 py-10">
       <div className="text-center mb-12">
@@ -12,22 +24,31 @@ export default function HomePage() {
         </p>
       </div>
       <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
-        <p className="text-[var(--foreground)] mb-6">
-          You&apos;re signed in (local mode). Jump in and start managing your list.
-        </p>
+        <p className="text-[var(--foreground)] mb-6">{greeting}</p>
         <div className="flex flex-col gap-3">
-          <Link
-            href="/list"
-            className="tap-target flex items-center justify-center gap-2 h-12 rounded-xl bg-[var(--accent)] text-[var(--foreground)] font-semibold no-underline hover:opacity-90 transition-opacity"
-          >
-            View shopping list
-          </Link>
-          <Link
-            href="/items"
-            className="tap-target flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-[var(--border)] text-[var(--foreground)] font-medium no-underline hover:bg-[var(--border)] transition-colors"
-          >
-            Browse all items
-          </Link>
+          {user || AUTO_APPROVE_AUTH ? (
+            <>
+              <Link
+                href="/list"
+                className="tap-target flex items-center justify-center gap-2 h-12 rounded-xl bg-[var(--accent)] text-[var(--foreground)] font-semibold no-underline hover:opacity-90 transition-opacity"
+              >
+                View shopping list
+              </Link>
+              <Link
+                href="/items"
+                className="tap-target flex items-center justify-center gap-2 h-12 rounded-xl border-2 border-[var(--border)] text-[var(--foreground)] font-medium no-underline hover:bg-[var(--border)] transition-colors"
+              >
+                Browse all items
+              </Link>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="tap-target flex items-center justify-center gap-2 h-12 rounded-xl bg-[var(--accent)] text-[var(--foreground)] font-semibold no-underline hover:opacity-90 transition-opacity"
+            >
+              Log in
+            </Link>
+          )}
         </div>
       </div>
       <p className="mt-6 text-center text-sm text-[var(--muted)]">

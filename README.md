@@ -28,11 +28,13 @@ By default, auth is **auto-approved** for local use — no login required. A `de
 
 To require real login (e.g. for multi-user or hosted deployments):
 
-1. Set `AUTO_APPROVE_AUTH=false` in your environment (e.g. in `.env.local`)
+1. Set `AUTO_APPROVE_AUTH=false` in your environment (e.g. in `.env.local`, or your production `.env`)
 2. Visit the app — you'll be redirected to `/login`
 3. Create an account on first run; subsequent users can sign up from the same page
 
 Each user has fully isolated items, shopping list, and inventory notes.
+
+If you've been running in auto-approve mode and want to migrate existing data to a real user account, see `scripts/migrate-user-data.sql`.
 
 ## API
 
